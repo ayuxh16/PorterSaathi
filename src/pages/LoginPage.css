@@ -1,0 +1,90 @@
+.login-page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+.login-left {
+  background: radial-gradient(ellipse at 30% 60%, rgba(232,52,28,0.2), transparent 60%), var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 40px 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ll-brand {
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; margin-bottom: auto;
+}
+
+.ll-copy { margin-top: auto; }
+.ll-copy h2 { font-size: 32px; line-height: 1.2; margin-bottom: 14px; }
+.ll-copy > p { color: var(--muted); font-size: 15px; margin-bottom: 36px; }
+
+.ll-stats { display: flex; gap: 32px; }
+.ll-stat strong { display: block; font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--red); }
+.ll-stat span   { font-size: 13px; color: var(--muted); }
+
+.login-right {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px;
+}
+
+.login-card { width: 100%; max-width: 420px; }
+
+.role-toggle {
+  display: flex;
+  background: var(--bg3);
+  border-radius: 10px;
+  padding: 4px; gap: 4px;
+  margin-bottom: 26px;
+}
+.role-toggle button {
+  flex: 1; padding: 10px;
+  border: none; border-radius: 8px;
+  background: transparent; color: var(--muted);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+}
+.role-toggle button.active { background: var(--red); color: #fff; }
+
+.login-card h2 { font-size: 26px; margin-bottom: 6px; }
+.form-sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+.govt-notice {
+  display: flex; gap: 14px;
+  background: rgba(245,166,35,0.08);
+  border: 1px solid rgba(245,166,35,0.2);
+  border-radius: 12px; padding: 16px;
+  margin-bottom: 22px;
+}
+.govt-notice > span { font-size: 22px; }
+.govt-notice strong { display: block; font-size: 14px; color: var(--amber); margin-bottom: 4px; }
+.govt-notice p { font-size: 13px; color: var(--muted); }
+
+.submit-btn {
+  width: 100%; padding: 14px;
+  border-radius: 10px; border: none;
+  font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+  cursor: pointer; margin-bottom: 16px;
+}
+
+.toggle-auth { text-align: center; font-size: 14px; color: var(--muted); }
+.toggle-auth button {
+  background: none; border: none;
+  color: var(--amber); font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+}
+
+.back-link {
+  display: block; background: none; border: none;
+  color: var(--muted); font-size: 14px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; margin-top: 10px;
+}
+
+.back-home {
+  text-align: center; margin-top: 24px;
+  font-size: 13px; color: var(--muted); cursor: pointer;
+}
+.back-home:hover { color: var(--text); }

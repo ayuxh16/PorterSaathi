@@ -1,0 +1,132 @@
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Porter cards */
+.porter-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+.porter-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px;
+  cursor: pointer; transition: all 0.18s; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.porter-card:hover, .porter-card.selected { border-color: var(--red); background: rgba(232,52,28,0.06); }
+.pc-avatar {
+  width: 56px; height: 56px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; color: #fff;
+  margin-bottom: 8px;
+}
+.pc-stars { font-size: 12px; color: var(--muted); }
+.pc-price { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: var(--amber); margin: 4px 0; }
+
+.confirm-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 16px; border-top: 1px solid var(--border);
+}
+
+/* Lists */
+.list { display: flex; flex-direction: column; gap: 12px; }
+.b-item {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 22px;
+}
+.b-info h4 { font-size: 15px; margin-bottom: 4px; }
+.b-info p  { font-size: 13px; color: var(--muted); }
+
+/* Status */
+.status-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 44px 32px;
+  text-align: center; display: flex; flex-direction: column; align-items: center;
+}
+.s-icon { font-size: 56px; margin-bottom: 16px; }
+.status-card h2 { font-size: 26px; margin-bottom: 8px; }
+.detail-table { width: 100%; max-width: 360px; margin: 16px auto; text-align: left; }
+.d-row {
+  display: flex; justify-content: space-between;
+  padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+}
+.d-row:last-child { border-bottom: none; }
+.d-row > span { color: var(--muted); }
+.sim-btns { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+.empty-box { text-align: center; padding: 60px 20px; color: var(--muted); }
+.link-btn { background: none; border: none; color: var(--amber); cursor: pointer; font-size: 15px; font-family: 'DM Sans', sans-serif; }
+
+/* Availability */
+.avail-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 20px 26px; margin-bottom: 24px;
+}
+.avail-bar strong { font-size: 15px; display: block; margin-bottom: 4px; }
+.avail-bar p { font-size: 13px; color: var(--muted); }
+
+.toggle {
+  width: 52px; height: 28px; background: var(--bg3);
+  border-radius: 999px; position: relative; cursor: pointer;
+  transition: background 0.2s; border: 1px solid var(--border); flex-shrink: 0;
+}
+.toggle.on { background: var(--green); }
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left 0.2s;
+}
+.toggle.on::after { left: 27px; }
+
+/* Request cards */
+.req-card {
+  background: var(--bg2); border: 2px solid var(--amber);
+  border-radius: 20px; padding: 28px; position: relative; margin-bottom: 16px;
+}
+.new-badge {
+  position: absolute; top: 16px; right: 16px;
+  background: var(--amber); color: var(--bg);
+  font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 800;
+  padding: 4px 10px; border-radius: 999px; letter-spacing: 1px;
+}
+.req-top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.rc-avatar {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; color: #fff; flex-shrink: 0;
+}
+.req-top h4 { font-size: 16px; margin-bottom: 2px; }
+.req-top p  { font-size: 13px; color: var(--muted); }
+.req-details { background: var(--bg3); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; }
+.rd-row { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; }
+.rd-row > span { color: var(--muted); }
+.req-actions { display: flex; gap: 12px; }
+.btn-accept {
+  flex: 1; padding: 13px; border: none; border-radius: 10px;
+  background: var(--green); color: #fff;
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.btn-reject {
+  flex: 1; padding: 13px; border: 1px solid var(--border); border-radius: 10px;
+  background: transparent; color: var(--muted);
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.btn-reject:hover { border-color: var(--red); color: var(--red); }
+
+/* Pricing */
+.route-row { display: grid; grid-template-columns: 1fr auto 1fr 100px; gap: 12px; align-items: center; margin-bottom: 12px; }
+.route-input {
+  width: 100%; padding: 11px 14px; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+}
+.route-input:focus { border-color: var(--amber); }
+.arrow { color: var(--muted); font-size: 18px; }
+.add-route-btn {
+  display: flex; gap: 8px; padding: 10px 16px;
+  border: 1px dashed var(--border); border-radius: 10px;
+  background: transparent; color: var(--muted);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all 0.2s; margin-top: 8px;
+}
+.add-route-btn:hover { border-color: var(--amber); color: var(--amber); }
+
+/* Earnings */
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 22px; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+.stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+.stat-val { font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 800; }

@@ -1,0 +1,30 @@
+.profile-hero {
+  display: flex; align-items: center; gap: 24px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 28px 32px; margin-bottom: 20px;
+}
+.big-avatar {
+  width: 72px; height: 72px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 26px; color: #fff; flex-shrink: 0;
+}
+.profile-hero h2 { font-size: 22px; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.locked { opacity: 0.5; cursor: not-allowed; }
+
+.profile-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.pstat { background: var(--bg3); border-radius: 12px; padding: 18px; text-align: center; }
+.pstat-val   { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+.pstat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+.danger-card { border-color: rgba(232,52,28,0.25); }
+.danger-card h3 { color: var(--red); }
+.danger-card > p { font-size: 14px; color: var(--muted); margin-bottom: 18px; margin-top: -10px; }
+.btn-danger {
+  padding: 11px 24px; background: transparent;
+  border: 1px solid rgba(232,52,28,0.5); border-radius: 10px;
+  color: var(--red); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all 0.2s;
+}
+.btn-danger:hover { background: rgba(232,52,28,0.1); }
