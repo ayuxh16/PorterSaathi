@@ -13,15 +13,24 @@ const PORTER_LINKS = [
 ]
 
 export default function Sidebar({ role = 'customer', activeTab, onTabChange }) {
-  const navigate = useNavigate()
-  const links    = role === 'porter' ? PORTER_LINKS : CUSTOMER_LINKS
-  const accent   = role === 'porter' ? 'var(--amber)' : 'var(--red)'
-  const name     = role === 'porter' ? 'Ramesh Kumar' : 'Anil Kumar'
-  const sub      = role === 'porter' ? 'Porter #2847'  : 'Customer'
-  const initials = role === 'porter' ? 'RK' : 'AK'
-  const avatarBg = role === 'porter'
+  const navigate   = useNavigate()
+  const links      = role === 'porter' ? PORTER_LINKS : CUSTOMER_LINKS
+  const accent     = role === 'porter' ? 'var(--amber)' : 'var(--red)'
+  const avatarBg   = role === 'porter'
     ? 'linear-gradient(135deg,#F5A623,#e67e22)'
     : 'linear-gradient(135deg,#E8341C,#F5A623)'
+
+  // Read real user from localStorage
+  const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+  const name       = storedUser.name  || (role === 'porter' ? 'Porter' : 'Customer')
+  const initials   = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+  const sub        = role === 'porter' ? 'Porter' : 'Customer'
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    navigate('/login')
+  }
 
   return (
     <aside className="sidebar">
@@ -57,11 +66,11 @@ export default function Sidebar({ role = 'customer', activeTab, onTabChange }) {
         <div className="user-chip">
           <div className="user-avatar" style={{ background: avatarBg }}>{initials}</div>
           <div className="user-meta">
-            <h4>{name}</h4>   
+            <h4>{name}</h4>
             <p>{sub}</p>
           </div>
         </div>
-        <button className="logout-btn" onClick={() => navigate('/login')}>
+        <button className="logout-btn" onClick={handleSignOut}>
           ↩ Sign out
         </button>
       </div>

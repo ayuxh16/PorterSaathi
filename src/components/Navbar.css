@@ -5,7 +5,6 @@
   padding: 16px 44px;
   border-bottom: 1px solid var(--border);
   background: rgba(13,13,13,0.92);
-  backdrop-filter: blur(14px);
   position: sticky;
   top: 0;
   z-index: 100;

@@ -28,17 +28,21 @@ const PORTER_STEPS = [
   'Complete jobs and build your rating.',
 ]
 
+const FALLBACK_PORTERS = [
+  { id:1, name:'Ramesh Kumar', rating:4.9, price:120 },
+  { id:2, name:'Suresh Mehta', rating:4.7, price:100 },
+  { id:3, name:'Mahesh Tiwari',rating:4.8, price:140 },
+]
+
 export default function LandingPage() {
   const navigate = useNavigate()
+  const [porters, setPorters] = useState(FALLBACK_PORTERS)
 
-  const [porters, setPorters] = useState([])
-
-  // 🔥 Fetch from backend
   useEffect(() => {
     fetch('http://localhost:5000/api/porters')
-      .then(res => res.json())
-      .then(data => setPorters(data))
-      .catch(err => console.error('Error fetching porters:', err))
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && data.length) setPorters(data) })
+      .catch(() => {}) // silently use fallback
   }, [])
 
   return (
@@ -57,34 +61,23 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* 🔥 Dynamic Porters */}
         <div className="hero-preview">
           <div className="preview-header">
             <span><span className="dot" />Available Porters Nearby</span>
             <span className="station-tag">Platform 2 · NDLS</span>
           </div>
-
-          {porters.length === 0 ? (
-            <p style={{ color: '#888' }}>Loading porters...</p>
-          ) : (
-            porters.map(p => (
-              <div className="preview-row" key={p.id}>
-                <div
-                  className="p-avatar"
-                  style={{ background: 'linear-gradient(135deg,#E8341C,#F5A623)' }}
-                >
-                  {p.name?.split(' ').map(n => n[0]).join('')}
-                </div>
-
-                <div className="p-info">
-                  <h4>{p.name}</h4>
-                  <small>⭐ {p.rating} · Porter #{p.id}</small>
-                </div>
-
-                <strong className="p-price">₹{p.price}</strong>
+          {porters.map(p => (
+            <div className="preview-row" key={p.id}>
+              <div className="p-avatar" style={{ background:'linear-gradient(135deg,#E8341C,#F5A623)' }}>
+                {p.name?.split(' ').map(n => n[0]).join('')}
               </div>
-            ))
-          )}
+              <div className="p-info">
+                <h4>{p.name}</h4>
+                <small>⭐ {p.rating} · Porter #{p.id}</small>
+              </div>
+              <strong className="p-price">₹{p.price}</strong>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -118,7 +111,6 @@ export default function LandingPage() {
               ))}
               <button className="btn-primary" style={{ marginTop:20 }} onClick={() => navigate('/login')}>Get Started →</button>
             </div>
-
             <div className="path-card">
               <h3>🧳 Porter <span className="tag tag-amber">Porter</span></h3>
               {PORTER_STEPS.map((s, i) => (
@@ -134,11 +126,11 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="cta">
+      <section className="cta" id="join">
         <h2>Ready to travel lighter?</h2>
         <p>Join thousands of travellers and porters on PorterSaathi</p>
         <div className="hero-btns" style={{ justifyContent:'center', marginTop:28 }}>
-          <button className="btn-primary" onClick={() => navigate('/booking')}>Book a Porter</button>
+          <button className="btn-primary" onClick={() => navigate('/signup')}>Create Account</button>
           <button className="btn-outline" onClick={() => navigate('/login?role=porter')}>Register as Porter</button>
         </div>
       </section>
