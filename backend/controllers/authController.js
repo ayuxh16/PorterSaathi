@@ -7,12 +7,20 @@ const JWT_SECRET = process.env.JWT_SECRET
 // ── SIGNUP ──
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password, role, coolie_num, coolieNum, mobile, city, station } = req.body
-
-    const coolieNumber = coolie_num || coolieNum
+    const { name, email, password, role, coolieNum, coolie_num, mobile, city, station } = req.body
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: 'Name, email, password and role are required' })
+    }
+
+    if (!['admin', 'porter', 'customer'].includes(role)) {
+      return res.status(400).json({ error: 'Role must be admin, porter, or customer' })
+    }
+
+    // Porter must provide coolie number
+    const coolieNumber = coolieNum || coolie_num || null
+    if (role === 'porter' && !coolieNumber) {
+      return res.status(400).json({ error: 'Coolie registration number is required for porters' })
     }
 
     // Check existing user
@@ -21,18 +29,13 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' })
     }
 
-    // Porter must provide coolie number
-    if (role === 'porter' && !coolieNumber) {
-      return res.status(400).json({ error: 'Coolie registration number is required for porters' })
-    }
-
     const hashed = await bcrypt.hash(password, 10)
 
     const result = await pool.query(
       `INSERT INTO users (name, email, password, role, coolie_num, mobile, city, station)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, name, email, role`,
-      [name, email, hashed, role, coolieNumber || null, mobile || null, city || null, station || null]
+      [name, email, hashed, role, coolieNumber, mobile || null, city || null, station || null]
     )
 
     res.json({ message: 'Signup successful', user: result.rows[0] })
@@ -71,7 +74,7 @@ exports.login = async (req, res) => {
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, role: user.role }
+      user: { id: user.id, name: user.name, role: user.role, email: user.email }
     })
   } catch (err) {
     console.error(err)

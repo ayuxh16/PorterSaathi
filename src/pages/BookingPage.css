@@ -1,14 +1,73 @@
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-/* Porter cards */
-.porter-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+/* ── Station chip ── */
+.station-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(245,166,35,0.12);
+  border: 1px solid rgba(245,166,35,0.25);
+  color: var(--amber);
+  border-radius: 999px; padding: 3px 12px;
+  font-size: 13px; font-weight: 500;
+}
+
+/* ── Service type row ── */
+.service-type-row {
+  display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.service-btn {
+  padding: 9px 18px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg3);
+  color: var(--muted); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.18s;
+  font-family: 'DM Sans', sans-serif;
+}
+.service-btn:hover { border-color: var(--red); color: var(--text); }
+.service-btn.active { background: rgba(232,52,28,0.12); border-color: var(--red); color: var(--red); font-weight: 600; }
+
+/* ── Price range box ── */
+.price-range-box {
+  background: linear-gradient(135deg, rgba(245,166,35,0.06), rgba(232,52,28,0.04));
+  border: 1px solid rgba(245,166,35,0.2);
+  border-radius: 16px; padding: 20px; margin: 20px 0;
+}
+.prb-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.prb-header > span { font-size: 15px; font-weight: 600; }
+.prb-hint { font-size: 12px; color: var(--muted); }
+.prb-inputs {
+  display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.prb-field { display: flex; flex-direction: column; gap: 6px; }
+.prb-field label { font-size: 12px; color: var(--muted); }
+.prb-field input {
+  width: 110px; padding: 10px 14px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text);
+  font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700;
+  outline: none;
+}
+.prb-field input:focus { border-color: var(--amber); }
+.prb-divider { font-size: 20px; color: var(--muted); padding-bottom: 10px; }
+.prb-preview {
+  font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+  color: var(--amber); padding-bottom: 8px; margin-left: 8px;
+}
+.prb-note { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.prb-note strong { color: var(--text); }
+
+/* ── Large button ── */
+.btn-lg { width: 100%; padding: 16px; font-size: 16px; border-radius: 12px; }
+
+/* ── Porter grid ── */
+.porter-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 8px; }
 .porter-card {
   background: var(--bg3); border: 1px solid var(--border);
   border-radius: 14px; padding: 20px;
-  cursor: pointer; transition: all 0.18s; text-align: center;
+  cursor: default; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
 }
-.porter-card:hover, .porter-card.selected { border-color: var(--red); background: rgba(232,52,28,0.06); }
 .pc-avatar {
   width: 56px; height: 56px; border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
@@ -16,8 +75,95 @@
   margin-bottom: 8px;
 }
 .pc-stars { font-size: 12px; color: var(--muted); }
-.pc-price { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: var(--amber); margin: 4px 0; }
 
+/* ── No porter card ── */
+.no-porter-card {
+  text-align: center; padding: 48px 20px !important;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+
+/* ── Waiting status card ── */
+.waiting-card { position: relative; overflow: hidden; }
+.pulse-ring {
+  position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 120px; border-radius: 50%;
+  border: 2px solid rgba(245,166,35,0.3);
+  animation: pulseRing 1.8s ease-out infinite;
+}
+@keyframes pulseRing {
+  0%   { transform: translateX(-50%) scale(0.8); opacity: 1; }
+  100% { transform: translateX(-50%) scale(2.2); opacity: 0; }
+}
+.searching-dots {
+  display: flex; gap: 8px; margin-top: 20px; align-items: center;
+}
+.searching-dots span {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--amber);
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+.searching-dots span:nth-child(2) { animation-delay: 0.2s; }
+.searching-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotBounce {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%       { opacity: 1;   transform: scale(1.2); }
+}
+
+/* ── Confirmed status card ── */
+.confirmed-card { border: 1px solid rgba(34,197,94,0.2) !important; }
+
+/* ── Matched porter card ── */
+.matched-porter-card {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 16px; padding: 18px 22px; width: 100%; max-width: 420px;
+  margin: 0 auto 16px;
+}
+.mp-avatar {
+  width: 52px; height: 52px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: #fff;
+}
+.mp-info { flex: 1; }
+.mp-info h3 { font-size: 16px; margin-bottom: 4px; }
+.mp-info span { font-size: 12px; color: var(--muted); }
+.mp-call-btn {
+  padding: 8px 16px; background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.25);
+  color: var(--green); border-radius: 10px; font-size: 13px;
+  font-weight: 600; text-decoration: none; white-space: nowrap;
+  transition: all 0.18s; cursor: pointer;
+}
+.mp-call-btn:hover { background: rgba(34,197,94,0.22); }
+
+/* ── Mobile reveal box ── */
+.mobile-reveal-box {
+  display: flex; align-items: center; gap: 16px;
+  background: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 14px; padding: 16px 20px;
+  width: 100%; max-width: 420px; margin: 0 auto 20px;
+}
+.mobile-reveal-box > span { font-size: 28px; }
+
+/* ── Price offer box (porter side) ── */
+.price-offer-box {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(245,166,35,0.08);
+  border: 1px solid rgba(245,166,35,0.2);
+  border-radius: 12px; padding: 14px 18px;
+  margin-bottom: 16px;
+}
+.price-offer-box > span { font-size: 14px; color: var(--muted); font-weight: 500; }
+
+/* ── Offline banner ── */
+.offline-banner {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 20px;
+  color: var(--muted); font-size: 14px; margin-bottom: 20px;
+  text-align: center;
+}
+
+/* ── Porter cards ── */
 .confirm-row {
   display: flex; justify-content: space-between; align-items: center;
   padding-top: 16px; border-top: 1px solid var(--border);
@@ -33,7 +179,7 @@
 .b-info h4 { font-size: 15px; margin-bottom: 4px; }
 .b-info p  { font-size: 13px; color: var(--muted); }
 
-/* Status */
+/* Status card base */
 .status-card {
   background: var(--bg2); border: 1px solid var(--border);
   border-radius: 20px; padding: 44px 32px;
@@ -108,7 +254,7 @@
 }
 .btn-reject:hover { border-color: var(--red); color: var(--red); }
 
-/* Pricing */
+/* Route pricing */
 .route-row { display: grid; grid-template-columns: 1fr auto 1fr 100px; gap: 12px; align-items: center; margin-bottom: 12px; }
 .route-input {
   width: 100%; padding: 11px 14px; background: var(--bg3);
@@ -125,7 +271,7 @@
 }
 .add-route-btn:hover { border-color: var(--amber); color: var(--amber); }
 
-/* Earnings */
+/* Earnings stats */
 .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 22px; }
 .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
 .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }

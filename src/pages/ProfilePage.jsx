@@ -8,12 +8,10 @@ export default function ProfilePage() {
   const navigate  = useNavigate()
   const showToast = useToast()
 
-  // Read logged-in user from localStorage
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
   const isPorter   = storedUser.role === 'porter'
   const token      = localStorage.getItem('token')
 
-  const [tab, setTab] = useState('profile')
   const [form, setForm] = useState({
     name:      storedUser.name  || '',
     email:     storedUser.email || '',
@@ -23,17 +21,14 @@ export default function ProfilePage() {
     city:      '',
   })
 
-  const accentColor = isPorter ? 'var(--amber)' : 'var(--red)'
-  const avatarBg    = isPorter
+  const avatarBg = isPorter
     ? 'linear-gradient(135deg,#F5A623,#e67e22)'
     : 'linear-gradient(135deg,#E8341C,#F5A623)'
 
-  // Get initials from name
   const initials = form.name
     ? form.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
     : '?'
 
-  // Fetch full profile from backend
   useEffect(() => {
     if (!token) { navigate('/login'); return }
     fetch('http://localhost:5000/api/auth/me', {
@@ -43,26 +38,24 @@ export default function ProfilePage() {
       .then(data => {
         if (data) {
           setForm({
-            name:      data.name      || '',
-            email:     data.email     || '',
-            mobile:    data.mobile    || '',
+            name:      data.name       || '',
+            email:     data.email      || '',
+            mobile:    data.mobile     || '',
             coolieNum: data.coolie_num || '',
-            station:   data.station   || '',
-            city:      data.city      || '',
+            station:   data.station    || '',
+            city:      data.city       || '',
           })
-          // Update localStorage with latest name
-          localStorage.setItem('user', JSON.stringify({
-            ...storedUser,
-            name: data.name,
-          }))
+          localStorage.setItem('user', JSON.stringify({ ...storedUser, name: data.name }))
         }
       })
       .catch(() => {})
   }, [token])
 
-  const STATS = isPorter
-    ? [['Total Trips','—','var(--text)'],['Avg Rating','—','var(--amber)'],['This Month','—','var(--green)'],['Acceptance','—','var(--green)']]
-    : [['Bookings','—','var(--text)'],['Completed','—','var(--green)'],['Fav Station','—','var(--amber)'],['Spent','—','var(--text)']]
+  // When a sidebar tab is clicked, navigate back to booking/portal with the tab as query param
+  const handleTabChange = (tab) => {
+    const base = isPorter ? '/portal' : '/booking'
+    navigate(`${base}?tab=${tab}`)
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -70,9 +63,17 @@ export default function ProfilePage() {
     navigate('/login')
   }
 
+  const STATS = isPorter
+    ? [['Total Trips','—','var(--text)'],['Avg Rating','—','var(--amber)'],['This Month','—','var(--green)'],['Acceptance','—','var(--green)']]
+    : [['Bookings','—','var(--text)'],['Completed','—','var(--green)'],['Fav Station','—','var(--amber)'],['Spent','—','var(--text)']]
+
   return (
     <div className="dashboard-layout">
-      <Sidebar role={isPorter ? 'porter' : 'customer'} activeTab="profile" onTabChange={setTab} />
+      <Sidebar
+        role={isPorter ? 'porter' : 'customer'}
+        activeTab="profile"
+        onTabChange={handleTabChange}
+      />
 
       <div className="main-content page-enter">
         <div className="page-header">
@@ -82,11 +83,8 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Avatar banner */}
         <div className="profile-hero">
-          <div className="big-avatar" style={{ background: avatarBg }}>
-            {initials}
-          </div>
+          <div className="big-avatar" style={{ background: avatarBg }}>{initials}</div>
           <div>
             <h2>{form.name}</h2>
             <p style={{ color:'var(--muted)', marginTop:4 }}>
@@ -96,19 +94,16 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Personal info */}
         <div className="card">
           <h3>👤 Personal Information</h3>
           <div className="form-row">
             <div className="form-group">
               <label>Full Name</label>
-              <input type="text" value={form.name}
-                onChange={e => setForm({...form, name: e.target.value})} />
+              <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
             </div>
             <div className="form-group">
               <label>Mobile Number</label>
-              <input type="tel" value={form.mobile}
-                onChange={e => setForm({...form, mobile: e.target.value})} />
+              <input type="tel" value={form.mobile} onChange={e => setForm({...form, mobile: e.target.value})} />
             </div>
           </div>
           {isPorter ? (
@@ -126,13 +121,11 @@ export default function ProfilePage() {
             <div className="form-row">
               <div className="form-group">
                 <label>Email</label>
-                <input type="email" value={form.email}
-                  onChange={e => setForm({...form, email: e.target.value})} />
+                <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
               </div>
               <div className="form-group">
                 <label>City</label>
-                <input type="text" value={form.city}
-                  onChange={e => setForm({...form, city: e.target.value})} />
+                <input type="text" value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
               </div>
             </div>
           )}
@@ -145,7 +138,6 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Change password */}
         <div className="card">
           <h3>🔒 Change Password</h3>
           <div className="form-row">
@@ -165,7 +157,6 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Stats */}
         <div className="card">
           <h3>📊 {isPorter ? 'Porter' : 'Customer'} Stats</h3>
           <div className="profile-stats">
@@ -178,12 +169,10 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Danger zone */}
         <div className="card danger-card">
           <h3>⚠️ Danger Zone</h3>
           <p>Permanently delete your account and all data. This cannot be undone.</p>
-          <button className="btn-danger"
-            onClick={() => showToast('Are you sure?', 'This cannot be undone.', '⚠️')}>
+          <button className="btn-danger" onClick={() => showToast('Are you sure?', 'This cannot be undone.', '⚠️')}>
             Delete Account
           </button>
         </div>

@@ -1,0 +1,112 @@
+/* ── Step progress bar ── */
+.step-bar {
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 999px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.step-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.step-label { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+/* ── Step visual on left panel ── */
+.signup-steps-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 32px 0;
+}
+.ssv-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.ssv-step strong { display: block; font-size: 14px; }
+.ssv-step p      { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
+.ssv-circle {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: #fff;
+  transition: all 0.3s;
+}
+.ssv-line {
+  width: 2px; height: 28px;
+  margin-left: 15px;
+  transition: background 0.4s;
+  border-radius: 2px;
+}
+
+/* ── Mobile input with prefix ── */
+.input-with-prefix { position: relative; }
+.input-prefix {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: var(--muted);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* ── Station dropdown ── */
+.station-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  z-index: 999;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.station-option {
+  padding: 11px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border);
+}
+.station-option:last-child { border-bottom: none; }
+.station-option:hover { background: rgba(255,255,255,0.05); }
+.station-option.muted { color: var(--muted); cursor: default; }
+
+/* ── Selected station badge ── */
+.selected-station-badge {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.25);
+  color: #22c55e;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ── Info notice (mobile sharing) ── */
+.info-notice {
+  display: flex; gap: 14px;
+  background: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 12px; padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+.info-notice > span { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.info-notice strong { display: block; color: #818cf8; font-size: 13px; margin-bottom: 3px; }
+.info-notice p { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+/* ── Form row (2 columns) ── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }

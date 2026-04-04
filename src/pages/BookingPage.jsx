@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import { useToast } from '../components/Toast'
 import './BookingPage.css'
@@ -21,7 +21,6 @@ function StatusBadge({ status }) {
   )
 }
 
-/* ── GET INITIALS ── */
 function getInitials(name = '') {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
@@ -35,41 +34,61 @@ const AVATAR_COLORS = [
 
 /* ══════════════════════════════════════════════ */
 export default function BookingPage() {
-  const navigate  = useNavigate()
-  const showToast = useToast()
+  const navigate       = useNavigate()
+  const showToast      = useToast()
+  const [searchParams] = useSearchParams()
+  const pollRef        = useRef(null)
 
-  // Read logged-in user from localStorage
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
   const token      = localStorage.getItem('token')
   const isPorter   = storedUser.role === 'porter'
 
-  const [tab, setTab]                       = useState(isPorter ? 'requests' : 'book')
-  const [porters, setPorters]               = useState([])
-  const [loadingPorters, setLoadingPorters] = useState(true)
-  const [selectedPorter, setSelectedPorter] = useState(null)
-  const [form, setForm]                     = useState({ from:'', to:'', bags:'1', date:'' })
-  const [bookings, setBookings]             = useState([])
-  const [requests, setRequests]             = useState([])
-  const [available, setAvailable]           = useState(true)
-  const [routes, setRoutes]                 = useState([])
-  const [liveStatus, setLiveStatus]         = useState(null)
+  const defaultTab = searchParams.get('tab') || (isPorter ? 'requests' : 'book')
+  const [tab, setTab]                         = useState(defaultTab)
+
+  // ── Customer state ──
+  const [porters, setPorters]                 = useState([])
+  const [loadingPorters, setLoadingPorters]   = useState(false)
+  const [selectedPorter, setSelectedPorter]   = useState(null)
+  const [matchedPorter, setMatchedPorter]     = useState(null) // after confirmation
+  const [requestSent, setRequestSent]         = useState(false)
+  const [bookingStatus, setBookingStatus]     = useState(null) // polling status
+  const [activeBookingId, setActiveBookingId] = useState(null)
+  const [form, setForm]                       = useState({
+    from: '', to: '', bags: '1', date: '',
+    priceMin: '', priceMax: '',
+    serviceType: 'luggage',
+    pnr: '', trainNo: '', coach: '',
+  })
+
+  // ── Shared state ──
+  const [bookings, setBookings]   = useState([])
+  const [liveStatus, setLiveStatus] = useState(null)
+
+  // ── Porter state ──
+  const [requests, setRequests]   = useState([])
+  const [available, setAvailable] = useState(true)
+  const [routes, setRoutes]       = useState([])
 
   // Redirect if not logged in
-  useEffect(() => {
-    if (!token) navigate('/login')
-  }, [token])
+  useEffect(() => { if (!token) navigate('/login') }, [token])
 
-  // Fetch available porters (for customers)
-  useEffect(() => {
+  // ── Fetch station-filtered porters ──
+  const fetchPorters = () => {
     if (isPorter) return
+    const station = storedUser.station || ''
     setLoadingPorters(true)
-    fetch('http://localhost:5000/api/porters')
+    fetch(`http://localhost:5000/api/porters?station=${encodeURIComponent(station)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then(r => r.ok ? r.json() : [])
       .then(data => { setPorters(data); setLoadingPorters(false) })
-      .catch(() => { setLoadingPorters(false) })
-  }, [isPorter])
+      .catch(() => setLoadingPorters(false))
+  }
 
-  // Fetch bookings
+  useEffect(() => { fetchPorters() }, [isPorter])
+
+  // ── Fetch bookings ──
   useEffect(() => {
     if (!token) return
     fetch('http://localhost:5000/api/bookings', {
@@ -78,50 +97,85 @@ export default function BookingPage() {
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         if (isPorter) {
-          // For porter: pending bookings are "requests"
           setRequests(data.filter(b => b.status === 'pending'))
           setBookings(data)
         } else {
           setBookings(data)
+          // Restore any active booking
+          const active = data.find(b => b.status === 'pending' || b.status === 'confirmed')
+          if (active) { setActiveBookingId(active.id); setBookingStatus(active.status) }
         }
       })
       .catch(() => {})
   }, [token, isPorter])
 
-  // Fetch porter's saved routes
+  // ── Fetch porter routes ──
   useEffect(() => {
     if (!isPorter || !token) return
     fetch('http://localhost:5000/api/porter-routes', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : [])
-      .then(data => setRoutes(data.length ? data : [{ from:'', to:'', price:'' }]))
+      .then(data => setRoutes(data.length ? data : [{ from_loc:'', to_loc:'', price:'' }]))
       .catch(() => {})
   }, [isPorter, token])
 
-  /* ── Book a porter ── */
-  const handleBook = async () => {
-    if (!selectedPorter) return showToast('Select a porter first', '', '⚠️')
-    if (!form.from || !form.to) return showToast('Enter pickup & drop', '', '⚠️')
+  // ── Poll for booking status after request sent ──
+  useEffect(() => {
+    if (!activeBookingId || isPorter) return
+    pollRef.current = setInterval(async () => {
+      try {
+        const res  = await fetch(`http://localhost:5000/api/bookings/${activeBookingId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        setBookingStatus(data.status)
+        if (data.status === 'confirmed') {
+          setMatchedPorter(data.porter)
+          setLiveStatus(data)
+          showToast('Porter Confirmed! 🎉', `${data.porter?.name} is on the way!`)
+          clearInterval(pollRef.current)
+        } else if (data.status === 'rejected') {
+          showToast('Request Declined', 'Try another porter or raise your price.', '❌')
+          setRequestSent(false)
+          setActiveBookingId(null)
+          clearInterval(pollRef.current)
+        }
+      } catch {}
+    }, 3000)
+    return () => clearInterval(pollRef.current)
+  }, [activeBookingId])
 
-    const porter = porters.find(p => p.id === selectedPorter)
+  /* ── Send booking request with price range ── */
+  const handleSendRequest = async () => {
+    if (!form.from || !form.to)         return showToast('Enter pickup & drop location', '', '⚠️')
+    if (!form.priceMin || !form.priceMax) return showToast('Enter your price range', '', '⚠️')
+    if (parseInt(form.priceMin) > parseInt(form.priceMax))
+      return showToast('Min price cannot exceed max price', '', '⚠️')
+
     try {
       const res = await fetch('http://localhost:5000/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
         body: JSON.stringify({
-          porter_id: selectedPorter,
-          from_loc:  form.from,
-          to_loc:    form.to,
-          bags:      parseInt(form.bags),
-          price:     porter.price,
+          from_loc:     form.from,
+          to_loc:       form.to,
+          bags:         parseInt(form.bags),
+          price_min:    parseInt(form.priceMin),
+          price_max:    parseInt(form.priceMax),
+          service_type: form.serviceType,
+          pnr:          form.pnr,
+          train_no:     form.trainNo,
+          coach:        form.coach,
+          station:      storedUser.station,
         }),
       })
       const data = await res.json()
       if (res.ok) {
-        setBookings(prev => [data, ...prev])
-        setLiveStatus(data)
-        showToast('Booking Confirmed!', `${porter.name} has been notified.`)
+        setActiveBookingId(data.id)
+        setRequestSent(true)
+        setBookingStatus('pending')
+        showToast('Request Sent!', 'Waiting for a porter to accept…', '📡')
         setTab('status')
       } else {
         showToast('Booking failed', data.error, '❌')
@@ -142,10 +196,11 @@ export default function BookingPage() {
       })
       setRequests(prev => prev.filter(r => r.id !== id))
       showToast(
-        action === 'accept' ? 'Request Accepted!' : 'Request Declined',
+        action === 'accept' ? '✅ Request Accepted!' : 'Request Declined',
         action === 'accept' ? 'Head to the customer now.' : '',
         action === 'accept' ? '✅' : '❌',
       )
+      if (action === 'accept') setTab('status')
     } catch {
       showToast('Could not update request', '', '❌')
     }
@@ -166,7 +221,6 @@ export default function BookingPage() {
     }
   }
 
-  /* ── Update route locally ── */
   const updateRoute = (i, field, val) => {
     setRoutes(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
   }
@@ -188,71 +242,140 @@ export default function BookingPage() {
             <div className="page-header">
               <div>
                 <h1>Book a Porter</h1>
-                <p>Welcome back, {storedUser.name}! Choose a verified porter for your luggage</p>
+                <p>
+                  <span className="station-chip">🚉 {storedUser.station || 'No station set'}</span>
+                  &nbsp;— Showing porters at your station only
+                </p>
               </div>
             </div>
 
             <div className="card">
-              <h3>📍 Trip Details</h3>
+              <h3>📋 Trip Details</h3>
+
+              {/* Service type */}
+              <div className="service-type-row">
+                {[
+                  { id:'luggage',   icon:'🧳', label:'Luggage' },
+                  { id:'wheelchair',icon:'♿', label:'Wheelchair' },
+                  { id:'group',     icon:'👥', label:'Group / Corporate' },
+                ].map(s => (
+                  <button
+                    key={s.id}
+                    className={`service-btn ${form.serviceType === s.id ? 'active' : ''}`}
+                    onClick={() => setForm({...form, serviceType: s.id})}
+                  >
+                    {s.icon} {s.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="form-row">
                 <div className="form-group">
-                  <label>Pickup Point</label>
-                  <input placeholder="e.g. Platform 1" value={form.from}
-                    onChange={e => setForm({...form, from:e.target.value})} />
+                  <label>📍 Pickup Location</label>
+                  <input placeholder="e.g. Platform 3, Gate A"
+                    value={form.from} onChange={e => setForm({...form, from: e.target.value})} />
                 </div>
                 <div className="form-group">
-                  <label>Drop Point</label>
-                  <input placeholder="e.g. Exit Gate B" value={form.to}
-                    onChange={e => setForm({...form, to:e.target.value})} />
+                  <label>🏁 Drop Location</label>
+                  <input placeholder="e.g. Exit, Parking, Coach B4"
+                    value={form.to} onChange={e => setForm({...form, to: e.target.value})} />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>🚂 Train No. / PNR</label>
+                  <input placeholder="e.g. 12345"
+                    value={form.trainNo} onChange={e => setForm({...form, trainNo: e.target.value})} />
                 </div>
                 <div className="form-group">
-                  <label>No. of Bags</label>
-                  <select value={form.bags} onChange={e => setForm({...form, bags:e.target.value})}>
-                    {[1,2,3,4,5].map(n => <option key={n}>{n}</option>)}
+                  <label>🪑 Coach & Seat</label>
+                  <input placeholder="e.g. S4 / 32"
+                    value={form.coach} onChange={e => setForm({...form, coach: e.target.value})} />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>🧳 Number of Bags</label>
+                  <select value={form.bags} onChange={e => setForm({...form, bags: e.target.value})}>
+                    {[1,2,3,4,5,6,7,8].map(n => <option key={n}>{n}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Date</label>
+                  <label>📅 Date of Journey</label>
                   <input type="date" value={form.date}
-                    onChange={e => setForm({...form, date:e.target.value})} />
+                    onChange={e => setForm({...form, date: e.target.value})} />
                 </div>
               </div>
+
+              {/* ── PRICE RANGE ── */}
+              <div className="price-range-box">
+                <div className="prb-header">
+                  <span>💰 Your Price Range</span>
+                  <span className="prb-hint">Porters nearby will see this and accept if they agree</span>
+                </div>
+                <div className="prb-inputs">
+                  <div className="prb-field">
+                    <label>Min (₹)</label>
+                    <input type="number" placeholder="50" min="0"
+                      value={form.priceMin} onChange={e => setForm({...form, priceMin: e.target.value})} />
+                  </div>
+                  <div className="prb-divider">—</div>
+                  <div className="prb-field">
+                    <label>Max (₹)</label>
+                    <input type="number" placeholder="200" min="0"
+                      value={form.priceMax} onChange={e => setForm({...form, priceMax: e.target.value})} />
+                  </div>
+                  {form.priceMin && form.priceMax && (
+                    <div className="prb-preview">
+                      ₹{form.priceMin}–₹{form.priceMax}
+                    </div>
+                  )}
+                </div>
+                <p className="prb-note">
+                  📡 Once you send the request, <strong>all available porters at {storedUser.station || 'your station'}</strong> will get a notification.
+                  The first one to accept wins the booking.
+                </p>
+              </div>
+
+              <button className="btn-primary btn-lg" onClick={handleSendRequest}>
+                📡 Send Request to Nearby Porters →
+              </button>
             </div>
 
-            <div className="card">
-              <h3>🧳 Available Porters</h3>
-              {loadingPorters ? (
-                <p style={{ color:'var(--muted)' }}>Loading porters...</p>
-              ) : porters.length === 0 ? (
-                <p style={{ color:'var(--muted)' }}>No porters available right now.</p>
-              ) : (
-                <div className="porter-grid">
-                  {porters.map((p, idx) => (
-                    <div
-                      key={p.id}
-                      className={`porter-card ${selectedPorter === p.id ? 'selected' : ''}`}
-                      onClick={() => setSelectedPorter(p.id)}
-                    >
-                      <div className="pc-avatar" style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}>
-                        {getInitials(p.name)}
+            {/* Available porters preview */}
+            {loadingPorters
+              ? <div className="card"><p style={{color:'var(--muted)'}}>Finding porters at your station…</p></div>
+              : porters.length > 0 && (
+                <div className="card">
+                  <h3>👷 {porters.length} Porter{porters.length > 1 ? 's' : ''} Available at {storedUser.station}</h3>
+                  <p style={{color:'var(--muted)', fontSize:13, marginBottom:16}}>
+                    These porters will receive your request popup
+                  </p>
+                  <div className="porter-grid">
+                    {porters.map((p, idx) => (
+                      <div className="porter-card" key={p.id}>
+                        <div className="pc-avatar" style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}>
+                          {getInitials(p.name)}
+                        </div>
+                        <strong style={{fontSize:14}}>{p.name}</strong>
+                        <span className="pc-stars">⭐ {p.rating || '4.5'} · #{p.coolie_num || p.id}</span>
+                        <span style={{fontSize:12, color:'var(--green)'}}>● Online</span>
                       </div>
-                      <strong style={{ fontSize:15 }}>{p.name}</strong>
-                      <span className="pc-stars">⭐ {p.rating}</span>
-                      <div className="pc-price">₹{p.price}</div>
-                      <span className="chip chip-green" style={{ fontSize:11 }}>Available</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              )}
-              <div className="confirm-row">
-                <span style={{ color:'var(--muted)', fontSize:14 }}>
-                  {selectedPorter
-                    ? `Selected: ${porters.find(p=>p.id===selectedPorter)?.name} · ₹${porters.find(p=>p.id===selectedPorter)?.price}`
-                    : 'No porter selected'}
-                </span>
-                <button className="btn-primary" onClick={handleBook}>Confirm Booking →</button>
+              )
+            }
+
+            {porters.length === 0 && !loadingPorters && (
+              <div className="card no-porter-card">
+                <p style={{fontSize:36}}>😔</p>
+                <h3>No porters available at {storedUser.station || 'your station'} right now</h3>
+                <p style={{color:'var(--muted)', fontSize:14}}>Try again in a few minutes or contact station support.</p>
               </div>
-            </div>
+            )}
           </>
         )}
 
@@ -265,7 +388,7 @@ export default function BookingPage() {
             {bookings.length === 0
               ? <div className="empty-box">
                   <p>No bookings yet.</p>
-                  <button className="link-btn" onClick={()=>setTab('book')}>Book your first porter →</button>
+                  <button className="link-btn" onClick={() => setTab('book')}>Book your first porter →</button>
                 </div>
               : <div className="list">
                   {bookings.map(b => (
@@ -275,7 +398,9 @@ export default function BookingPage() {
                         <p>{b.porter_name || 'Porter'} · {new Date(b.created_at).toLocaleDateString()}</p>
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-                        <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:'var(--amber)' }}>₹{b.price}</span>
+                        <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:'var(--amber)' }}>
+                          ₹{b.price_min}–₹{b.price_max}
+                        </span>
                         <StatusBadge status={b.status} />
                       </div>
                     </div>
@@ -291,39 +416,87 @@ export default function BookingPage() {
             <div className="page-header">
               <div><h1>Booking Status</h1><p>Live updates on your current booking</p></div>
             </div>
-            {liveStatus || bookings.find(b => b.status === 'pending' || b.status === 'confirmed')
-              ? (() => {
-                  const b = liveStatus || bookings.find(b => b.status === 'pending' || b.status === 'confirmed')
-                  return (
-                    <div className="status-card">
-                      <div className="s-icon">{b.status === 'confirmed' ? '✅' : '⏳'}</div>
-                      <h2>{b.status === 'confirmed' ? 'Porter Confirmed!' : 'Waiting for Porter…'}</h2>
-                      <p style={{ color:'var(--muted)', marginBottom:8 }}>
-                        {b.status === 'confirmed' ? 'Your porter is on the way.' : 'Porter will accept shortly.'}
-                      </p>
-                      <div className="detail-table">
-                        {[
-                          ['Booking ID', b.id],
-                          ['From', b.from_loc || b.from],
-                          ['To', b.to_loc || b.to],
-                          ['Price', `₹${b.price}`],
-                          ['Status', b.status]
-                        ].map(([k,v]) => (
-                          <div className="d-row" key={k}><span>{k}</span><strong>{v}</strong></div>
-                        ))}
-                      </div>
-                      <div className="sim-btns">
-                        <button className="btn-outline" onClick={()=>setTab('bookings')}>View All Bookings</button>
-                      </div>
-                    </div>
-                  )
-                })()
-              : <div className="empty-box">
-                  <p style={{ fontSize:48 }}>🔔</p>
-                  <p style={{ marginTop:12 }}>No active bookings.</p>
-                  <button className="link-btn" onClick={()=>setTab('book')}>Book a porter →</button>
+
+            {requestSent && bookingStatus === 'pending' && (
+              <div className="status-card waiting-card">
+                <div className="pulse-ring" />
+                <div className="s-icon">📡</div>
+                <h2>Waiting for a Porter…</h2>
+                <p style={{ color:'var(--muted)' }}>
+                  Your request has been sent to all available porters at <strong>{storedUser.station}</strong>.
+                  Sit tight!
+                </p>
+                <div className="detail-table" style={{maxWidth:380}}>
+                  {[
+                    ['From',        form.from || liveStatus?.from_loc],
+                    ['To',          form.to   || liveStatus?.to_loc],
+                    ['Price Range', `₹${form.priceMin} – ₹${form.priceMax}`],
+                    ['Bags',        form.bags],
+                    ['Station',     storedUser.station],
+                  ].map(([k,v]) => v && (
+                    <div className="d-row" key={k}><span>{k}</span><strong>{v}</strong></div>
+                  ))}
                 </div>
-            }
+                <div className="searching-dots">
+                  <span /><span /><span />
+                </div>
+              </div>
+            )}
+
+            {bookingStatus === 'confirmed' && matchedPorter && (
+              <div className="status-card confirmed-card">
+                <div className="s-icon">✅</div>
+                <h2>Porter Confirmed!</h2>
+                <p style={{ color:'var(--muted)', marginBottom:20 }}>
+                  Your porter is on the way. You can now contact them directly.
+                </p>
+
+                {/* ── MATCHED PORTER CARD ── */}
+                <div className="matched-porter-card">
+                  <div className="mp-avatar" style={{background: AVATAR_COLORS[0]}}>
+                    {getInitials(matchedPorter.name)}
+                  </div>
+                  <div className="mp-info">
+                    <h3>{matchedPorter.name}</h3>
+                    <span>⭐ {matchedPorter.rating || '4.5'} · #{matchedPorter.coolie_num}</span>
+                  </div>
+                  <a
+                    href={`tel:+91${matchedPorter.mobile}`}
+                    className="mp-call-btn"
+                  >
+                    📞 Call Porter
+                  </a>
+                </div>
+
+                {/* Mobile number reveal */}
+                <div className="mobile-reveal-box">
+                  <span>📱</span>
+                  <div>
+                    <strong>Porter's Mobile</strong>
+                    <p style={{fontSize:20, fontFamily:"'Syne',sans-serif", fontWeight:700, color:'var(--text)', margin:'4px 0 0'}}>
+                      +91 {matchedPorter.mobile}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="sim-btns">
+                  <button className="btn-primary" onClick={() => navigate('/map')}>
+                    🗺️ Open Live Tracking Map
+                  </button>
+                  <button className="btn-outline" onClick={() => setTab('bookings')}>
+                    View All Bookings
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!requestSent && !liveStatus && bookings.filter(b=>b.status==='pending'||b.status==='confirmed').length === 0 && (
+              <div className="empty-box">
+                <p style={{ fontSize:48 }}>🔔</p>
+                <p style={{ marginTop:12 }}>No active bookings.</p>
+                <button className="link-btn" onClick={() => setTab('book')}>Book a porter →</button>
+              </div>
+            )}
           </>
         )}
 
@@ -333,47 +506,137 @@ export default function BookingPage() {
             <div className="page-header">
               <div>
                 <h1>Booking Requests</h1>
-                <p>Welcome, {storedUser.name}! Accept or decline incoming requests</p>
+                <p>
+                  <span className="station-chip">🚉 {storedUser.station || 'No station set'}</span>
+                  &nbsp;— Requests from your station only
+                </p>
               </div>
-              <div className="avail-bar" style={{ margin:0, border:'none', background:'transparent', padding:0 }}>
-                <div style={{ marginRight:14 }}>
-                  <strong style={{ fontSize:14, display:'block' }}>{available ? 'You are Online' : 'You are Offline'}</strong>
-                  <p style={{ fontSize:12, color:'var(--muted)' }}>{available ? 'Accepting requests' : 'Not accepting requests'}</p>
+              {/* Availability toggle */}
+              <div className="avail-bar" style={{margin:0, border:'none', background:'transparent', padding:0}}>
+                <div style={{marginRight:14}}>
+                  <strong style={{fontSize:14, display:'block', color: available ? 'var(--green)' : 'var(--muted)'}}>
+                    {available ? '● You are Online' : '○ You are Offline'}
+                  </strong>
+                  <p style={{fontSize:12, color:'var(--muted)'}}>
+                    {available ? 'Accepting requests' : 'Not accepting requests'}
+                  </p>
                 </div>
                 <div className={`toggle ${available ? 'on' : ''}`} onClick={() => setAvailable(a => !a)} />
               </div>
             </div>
 
+            {!available && (
+              <div className="offline-banner">
+                😴 You are currently offline. Toggle above to start receiving requests.
+              </div>
+            )}
+
             {requests.length === 0
-              ? <div className="empty-box"><p style={{fontSize:48}}>🔔</p><p style={{marginTop:12}}>No new requests right now.</p></div>
+              ? <div className="empty-box">
+                  <p style={{fontSize:48}}>🔔</p>
+                  <p style={{marginTop:12}}>No new requests right now.</p>
+                  <p style={{color:'var(--muted)', fontSize:13}}>Make sure you are Online to receive requests.</p>
+                </div>
               : requests.map((r, idx) => (
-                  <div className="req-card" key={r.id}>
-                    <span className="new-badge">NEW</span>
-                    <div className="req-top">
-                      <div className="rc-avatar" style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}>
-                        {getInitials(r.customer_name || 'Customer')}
-                      </div>
-                      <div>
-                        <h4>{r.customer_name || 'Customer'}</h4>
-                        <p>{new Date(r.created_at).toLocaleTimeString()}</p>
-                      </div>
+                <div className="req-card" key={r.id}>
+                  <span className="new-badge">NEW</span>
+                  <div className="req-top">
+                    <div className="rc-avatar" style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}>
+                      {getInitials(r.customer_name || 'Customer')}
                     </div>
-                    <div className="req-details">
-                      {[
-                        ['From', r.from_loc],
-                        ['To', r.to_loc],
-                        ['Bags', r.bags],
-                        ['Price', `₹${r.price}`]
-                      ].map(([k,v])=>(
-                        <div className="rd-row" key={k}><span>{k}</span><strong>{v}</strong></div>
-                      ))}
-                    </div>
-                    <div className="req-actions">
-                      <button className="btn-accept" onClick={() => handleRequest(r.id, 'accept')}>✓ Accept</button>
-                      <button className="btn-reject" onClick={() => handleRequest(r.id, 'reject')}>✕ Decline</button>
+                    <div>
+                      <h4>{r.customer_name || 'Customer'}</h4>
+                      <p>{new Date(r.created_at).toLocaleTimeString()}</p>
                     </div>
                   </div>
-                ))
+                  <div className="req-details">
+                    {[
+                      ['From',         r.from_loc],
+                      ['To',           r.to_loc],
+                      ['Bags',         r.bags],
+                      ['Service',      r.service_type || 'Luggage'],
+                      ['Train No.',    r.train_no || '—'],
+                      ['Coach',        r.coach || '—'],
+                    ].map(([k,v]) => (
+                      <div className="rd-row" key={k}><span>{k}</span><strong>{v}</strong></div>
+                    ))}
+                  </div>
+
+                  {/* Price range offered */}
+                  <div className="price-offer-box">
+                    <span>💰 Customer's Offer</span>
+                    <strong style={{fontSize:22, fontFamily:"'Syne',sans-serif", color:'var(--amber)'}}>
+                      ₹{r.price_min} – ₹{r.price_max}
+                    </strong>
+                  </div>
+
+                  <div className="req-actions">
+                    <button className="btn-accept" onClick={() => handleRequest(r.id, 'accept')}>
+                      ✓ Accept — I'm okay with ₹{r.price_max}
+                    </button>
+                    <button className="btn-reject" onClick={() => handleRequest(r.id, 'reject')}>
+                      ✕ Decline
+                    </button>
+                  </div>
+                </div>
+              ))
+            }
+          </>
+        )}
+
+        {/* ══ PORTER: STATUS after accepting ══ */}
+        {isPorter && tab === 'status' && (
+          <>
+            <div className="page-header">
+              <div><h1>Active Job</h1><p>Your current booking details</p></div>
+            </div>
+            {bookings.find(b => b.status === 'confirmed')
+              ? (() => {
+                  const b = bookings.find(b => b.status === 'confirmed')
+                  return (
+                    <div className="status-card confirmed-card">
+                      <div className="s-icon">🏃</div>
+                      <h2>Job In Progress</h2>
+
+                      {/* Customer mobile reveal */}
+                      <div className="mobile-reveal-box">
+                        <span>📱</span>
+                        <div>
+                          <strong>Customer's Mobile</strong>
+                          <p style={{fontSize:20, fontFamily:"'Syne',sans-serif", fontWeight:700, color:'var(--text)', margin:'4px 0 0'}}>
+                            +91 {b.customer_mobile || '——'}
+                          </p>
+                        </div>
+                        <a href={`tel:+91${b.customer_mobile}`} className="mp-call-btn">
+                          📞 Call
+                        </a>
+                      </div>
+
+                      <div className="detail-table" style={{maxWidth:380}}>
+                        {[
+                          ['Customer', b.customer_name],
+                          ['From',     b.from_loc],
+                          ['To',       b.to_loc],
+                          ['Bags',     b.bags],
+                          ['Coach',    b.coach || '—'],
+                          ['Agreed Price', `₹${b.price_max}`],
+                        ].map(([k,v]) => v && (
+                          <div className="d-row" key={k}><span>{k}</span><strong>{v}</strong></div>
+                        ))}
+                      </div>
+
+                      <div className="sim-btns">
+                        <button className="btn-amber" onClick={() => navigate('/map')}>
+                          🗺️ Open Live Tracking Map
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })()
+              : <div className="empty-box">
+                  <p style={{fontSize:48}}>✅</p>
+                  <p style={{marginTop:12}}>No active job right now.</p>
+                </div>
             }
           </>
         )}
@@ -389,13 +652,13 @@ export default function BookingPage() {
               <h3>💰 Route Pricing</h3>
               {routes.map((r, i) => (
                 <div className="route-row" key={i}>
-                  <input className="route-input" value={r.from_loc || r.from || ''} onChange={e => updateRoute(i,'from_loc',e.target.value)} placeholder="From" />
+                  <input className="route-input" value={r.from_loc || ''} onChange={e => updateRoute(i,'from_loc',e.target.value)} placeholder="From" />
                   <span className="arrow">→</span>
-                  <input className="route-input" value={r.to_loc || r.to || ''}   onChange={e => updateRoute(i,'to_loc',e.target.value)}   placeholder="To" />
-                  <input className="route-input" value={r.price || ''} onChange={e => updateRoute(i,'price',e.target.value)} placeholder="₹" type="number" />
+                  <input className="route-input" value={r.to_loc || ''}   onChange={e => updateRoute(i,'to_loc',e.target.value)}   placeholder="To" />
+                  <input className="route-input" value={r.price || ''}    onChange={e => updateRoute(i,'price',e.target.value)}    placeholder="₹" type="number" />
                 </div>
               ))}
-              <button className="add-route-btn" onClick={() => setRoutes(prev=>[...prev,{from_loc:'',to_loc:'',price:''}])}>
+              <button className="add-route-btn" onClick={() => setRoutes(prev => [...prev, {from_loc:'',to_loc:'',price:''}])}>
                 + Add Route
               </button>
             </div>
@@ -408,10 +671,22 @@ export default function BookingPage() {
             <div className="page-header">
               <div><h1>Earnings</h1><p>Track your income</p></div>
             </div>
+            <div className="stats-row">
+              {[
+                ['Total Earned', `₹${bookings.filter(b=>b.status==='completed').reduce((s,b)=>s+(b.price_max||0),0)}`, 'var(--green)'],
+                ['Completed Trips', bookings.filter(b=>b.status==='completed').length, 'var(--amber)'],
+                ['Pending', bookings.filter(b=>b.status==='pending').length, 'var(--text)'],
+              ].map(([l,v,c]) => (
+                <div className="stat-card" key={l}>
+                  <div className="stat-label">{l}</div>
+                  <div className="stat-val" style={{color:c}}>{v}</div>
+                </div>
+              ))}
+            </div>
             <div className="card">
               <h3>📋 Completed Trips</h3>
               {bookings.filter(b => b.status === 'completed').length === 0
-                ? <p style={{ color:'var(--muted)' }}>No completed trips yet.</p>
+                ? <p style={{ color:'var(--muted)', padding:'20px 0' }}>No completed trips yet.</p>
                 : <div className="list">
                     {bookings.filter(b => b.status === 'completed').map(b => (
                       <div className="b-item" key={b.id}>
@@ -419,7 +694,9 @@ export default function BookingPage() {
                           <h4>{b.from_loc} → {b.to_loc}</h4>
                           <p>{b.customer_name} · {new Date(b.created_at).toLocaleDateString()}</p>
                         </div>
-                        <strong style={{ fontFamily:"'Syne',sans-serif", color:'var(--green)' }}>+₹{b.price}</strong>
+                        <strong style={{ fontFamily:"'Syne',sans-serif", color:'var(--green)' }}>
+                          +₹{b.price_max}
+                        </strong>
                       </div>
                     ))}
                   </div>
