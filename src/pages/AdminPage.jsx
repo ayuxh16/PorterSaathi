@@ -53,7 +53,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab !== 'users' && tab !== 'overview') return
     setLoading(true)
-    fetch('http://localhost:5000/api/admin/users', {
+    fetch('https://portersaathi-1.onrender.com/api/admin/users', {
       headers: { Authorization: `Bearer ${token()}` },
     })
       .then(r => r.ok ? r.json() : [])
@@ -65,7 +65,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab !== 'bookings' && tab !== 'overview') return
     setLoading(true)
-    fetch('http://localhost:5000/api/admin/bookings', {
+    fetch('https://portersaathi-1.onrender.com/api/admin/bookings', {
       headers: { Authorization: `Bearer ${token()}` },
     })
       .then(r => r.ok ? r.json() : [])
@@ -257,5 +257,6 @@ export default function AdminPage() {
     </div>
   )
 }
+
 
 

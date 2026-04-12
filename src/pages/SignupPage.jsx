@@ -78,7 +78,7 @@ export default function SignupPage() {
         ...(form.role === 'porter' && { coolieNum: form.coolieNum }),
       }
 
-      const res  = await fetch('http://localhost:5000/api/auth/signup', {
+      const res  = await fetch('https://portersaathi-1.onrender.com/api/auth/signup', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
@@ -345,5 +345,6 @@ export default function SignupPage() {
     </div>
   )
 }
+
 
 

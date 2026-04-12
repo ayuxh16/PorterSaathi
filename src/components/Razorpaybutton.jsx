@@ -30,7 +30,7 @@ export default function RazorpayButton({ bookingId, amount, onSuccess, onFailure
       const user  = JSON.parse(localStorage.getItem('user') || '{}')
 
       // Step 1 — Create order on backend
-      const res  = await fetch('http://localhost:5000/api/payment/create-order', {
+      const res  = await fetch('https://portersaathi-1.onrender.com/api/payment/create-order', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body:    JSON.stringify({ amount, booking_id: bookingId }),
@@ -55,7 +55,7 @@ export default function RazorpayButton({ bookingId, amount, onSuccess, onFailure
 
         handler: async (response) => {
           // Step 3 — Verify payment on backend
-          const verifyRes = await fetch('http://localhost:5000/api/payment/verify', {
+          const verifyRes = await fetch('https://portersaathi-1.onrender.com/api/payment/verify', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({
@@ -117,5 +117,6 @@ export default function RazorpayButton({ bookingId, amount, onSuccess, onFailure
     </button>
   )
 }
+
 
 

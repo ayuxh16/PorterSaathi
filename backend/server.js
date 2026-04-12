@@ -8,7 +8,10 @@ const paymentRoutes  = require('./routes/paymentRoutes')
 const authMiddleware = require('./middleware/authMiddleware')
 const pool           = require('./config/db')
 
-app.use(cors())
+app.use(cors({
+  origin: ['https://portersaathi.vercel.app', 'http://localhost:5173'],
+  credentials: true,
+}))
 app.use(express.json())
 
 app.use('/api/auth',    authRoutes)

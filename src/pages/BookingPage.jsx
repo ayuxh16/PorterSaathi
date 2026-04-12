@@ -91,7 +91,7 @@ export default function BookingPage() {
   // ── Fetch bookings ──
   const fetchBookings = () => {
     if (!token) return
-    fetch('http://localhost:5000/api/bookings', {
+    fetch('https://portersaathi-1.onrender.com/api/bookings', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : [])
@@ -113,7 +113,7 @@ export default function BookingPage() {
   // ── Fetch porter routes ──
   useEffect(() => {
     if (!isPorter || !token) return
-    fetch('http://localhost:5000/api/porter-routes', {
+    fetch('https://portersaathi-1.onrender.com/api/porter-routes', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : [])
@@ -194,7 +194,7 @@ export default function BookingPage() {
       return showToast('Min price cannot exceed max price', '', '⚠️')
 
     try {
-      const res = await fetch('http://localhost:5000/api/bookings', {
+      const res = await fetch('https://portersaathi-1.onrender.com/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
         body: JSON.stringify({
@@ -249,7 +249,7 @@ export default function BookingPage() {
   /* ── Save porter routes ── */
   const saveRoutes = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/porter-routes', {
+      const res = await fetch('https://portersaathi-1.onrender.com/api/porter-routes', {
         method: 'POST',
         headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
         body: JSON.stringify({ routes }),
@@ -802,5 +802,6 @@ export default function BookingPage() {
     </div>
   )
 }
+
 
 
