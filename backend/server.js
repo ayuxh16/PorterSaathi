@@ -9,7 +9,7 @@ const authMiddleware = require('./middleware/authMiddleware')
 const pool           = require('./config/db')
 
 app.use(cors({
-  origin: ['https://portersaathi.vercel.app', 'http://localhost:5173'],
+  origin: ['https://porter-saathi-ueoz.vercel.app', 'http://localhost:5173'],
   credentials: true,
 }))
 app.use(express.json())
