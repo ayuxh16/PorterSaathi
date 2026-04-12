@@ -78,7 +78,7 @@ export default function BookingPage() {
     if (isPorter) return
     const station = storedUser.station || ''
     setLoadingPorters(true)
-    fetch(`http://localhost:5000/api/porters?station=${encodeURIComponent(station)}`, {
+    fetch(`/api/porters?station=${encodeURIComponent(station)}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : [])
@@ -126,7 +126,7 @@ export default function BookingPage() {
     if (!activeBookingId || isPorter) return
     pollRef.current = setInterval(async () => {
       try {
-        const res  = await fetch(`http://localhost:5000/api/bookings/${activeBookingId}`, {
+        const res  = await fetch(`/api/bookings/${activeBookingId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const data = await res.json()
@@ -159,7 +159,7 @@ export default function BookingPage() {
     if (!confirmed) return
     setCancellingId(id)
     try {
-      const res = await fetch(`http://localhost:5000/api/bookings/${id}`, {
+      const res = await fetch(`/api/bookings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: 'cancelled' }),
@@ -229,7 +229,7 @@ export default function BookingPage() {
   const handleRequest = async (id, action) => {
     const status = action === 'accept' ? 'confirmed' : 'rejected'
     try {
-      await fetch(`http://localhost:5000/api/bookings/${id}`, {
+      await fetch(`/api/bookings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
         body: JSON.stringify({ status }),
@@ -802,3 +802,5 @@ export default function BookingPage() {
     </div>
   )
 }
+
+

@@ -75,7 +75,7 @@ export default function AdminPage() {
 
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Delete this user?')) return
-    const res = await fetch(`http://localhost:5000/api/admin/users/${id}`, {
+    const res = await fetch(`/api/admin/users/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token()}` },
     })
@@ -257,3 +257,5 @@ export default function AdminPage() {
     </div>
   )
 }
+
+
