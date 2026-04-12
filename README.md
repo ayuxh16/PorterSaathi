@@ -16,7 +16,7 @@ PorterSaathi is a full-stack web application that allows users to **book railway
 
 * Node.js
 * Express.js
-* MongoDB *(planned)*
+* Postgresql
 * Redis & Kafka *(planned for scalability)*
 
 ---
