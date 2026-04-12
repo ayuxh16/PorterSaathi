@@ -11,6 +11,7 @@ function StatusBadge({ status }) {
     confirmed: ['var(--green)', 'rgba(34,197,94,0.12)'],
     completed: ['var(--muted)', 'rgba(255,255,255,0.06)'],
     rejected:  ['var(--red)',   'rgba(232,52,28,0.12)'],
+    cancelled: ['var(--red)',   'rgba(232,52,28,0.08)'],
   }
   const [color, bg] = map[status] || map.pending
   return (
@@ -45,14 +46,14 @@ export default function BookingPage() {
 
   const defaultTab = searchParams.get('tab') || (isPorter ? 'requests' : 'book')
   const [tab, setTab]                         = useState(defaultTab)
+  const [cancellingId, setCancellingId]       = useState(null)
 
   // ── Customer state ──
   const [porters, setPorters]                 = useState([])
   const [loadingPorters, setLoadingPorters]   = useState(false)
-  const [selectedPorter, setSelectedPorter]   = useState(null)
-  const [matchedPorter, setMatchedPorter]     = useState(null) // after confirmation
+  const [matchedPorter, setMatchedPorter]     = useState(null)
   const [requestSent, setRequestSent]         = useState(false)
-  const [bookingStatus, setBookingStatus]     = useState(null) // polling status
+  const [bookingStatus, setBookingStatus]     = useState(null)
   const [activeBookingId, setActiveBookingId] = useState(null)
   const [form, setForm]                       = useState({
     from: '', to: '', bags: '1', date: '',
@@ -70,10 +71,9 @@ export default function BookingPage() {
   const [available, setAvailable] = useState(true)
   const [routes, setRoutes]       = useState([])
 
-  // Redirect if not logged in
   useEffect(() => { if (!token) navigate('/login') }, [token])
 
-  // ── Fetch station-filtered porters ──
+  // ── Fetch porters ──
   const fetchPorters = () => {
     if (isPorter) return
     const station = storedUser.station || ''
@@ -89,7 +89,7 @@ export default function BookingPage() {
   useEffect(() => { fetchPorters() }, [isPorter])
 
   // ── Fetch bookings ──
-  useEffect(() => {
+  const fetchBookings = () => {
     if (!token) return
     fetch('http://localhost:5000/api/bookings', {
       headers: { Authorization: `Bearer ${token}` },
@@ -101,13 +101,14 @@ export default function BookingPage() {
           setBookings(data)
         } else {
           setBookings(data)
-          // Restore any active booking
           const active = data.find(b => b.status === 'pending' || b.status === 'confirmed')
           if (active) { setActiveBookingId(active.id); setBookingStatus(active.status) }
         }
       })
       .catch(() => {})
-  }, [token, isPorter])
+  }
+
+  useEffect(() => { fetchBookings() }, [token, isPorter])
 
   // ── Fetch porter routes ──
   useEffect(() => {
@@ -120,7 +121,7 @@ export default function BookingPage() {
       .catch(() => {})
   }, [isPorter, token])
 
-  // ── Poll for booking status after request sent ──
+  // ── Poll booking status ──
   useEffect(() => {
     if (!activeBookingId || isPorter) return
     pollRef.current = setInterval(async () => {
@@ -140,15 +141,54 @@ export default function BookingPage() {
           setRequestSent(false)
           setActiveBookingId(null)
           clearInterval(pollRef.current)
+        } else if (data.status === 'cancelled') {
+          showToast('Booking Cancelled', 'The booking has been cancelled.', '❌')
+          setRequestSent(false)
+          setActiveBookingId(null)
+          clearInterval(pollRef.current)
+          fetchBookings()
         }
       } catch {}
     }, 3000)
     return () => clearInterval(pollRef.current)
   }, [activeBookingId])
 
-  /* ── Send booking request with price range ── */
+  /* ── Cancel booking (customer or porter) ── */
+  const handleCancel = async (id) => {
+    const confirmed = window.confirm('Are you sure you want to cancel this booking?')
+    if (!confirmed) return
+    setCancellingId(id)
+    try {
+      const res = await fetch(`http://localhost:5000/api/bookings/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'cancelled' }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        showToast('Booking Cancelled', 'The booking has been cancelled.', '🚫')
+        // Reset active booking state if customer cancelled their active booking
+        if (id === activeBookingId) {
+          setRequestSent(false)
+          setActiveBookingId(null)
+          setBookingStatus(null)
+          setMatchedPorter(null)
+          clearInterval(pollRef.current)
+        }
+        fetchBookings() // refresh list
+      } else {
+        showToast('Cancel failed', data.error || 'Could not cancel booking', '❌')
+      }
+    } catch {
+      showToast('Could not connect to server', '', '❌')
+    } finally {
+      setCancellingId(null)
+    }
+  }
+
+  /* ── Send booking request ── */
   const handleSendRequest = async () => {
-    if (!form.from || !form.to)         return showToast('Enter pickup & drop location', '', '⚠️')
+    if (!form.from || !form.to)           return showToast('Enter pickup & drop location', '', '⚠️')
     if (!form.priceMin || !form.priceMax) return showToast('Enter your price range', '', '⚠️')
     if (parseInt(form.priceMin) > parseInt(form.priceMax))
       return showToast('Min price cannot exceed max price', '', '⚠️')
@@ -200,7 +240,7 @@ export default function BookingPage() {
         action === 'accept' ? 'Head to the customer now.' : '',
         action === 'accept' ? '✅' : '❌',
       )
-      if (action === 'accept') setTab('status')
+      if (action === 'accept') { fetchBookings(); setTab('status') }
     } catch {
       showToast('Could not update request', '', '❌')
     }
@@ -224,6 +264,8 @@ export default function BookingPage() {
   const updateRoute = (i, field, val) => {
     setRoutes(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
   }
+
+  const canCancel = (b) => ['pending', 'confirmed'].includes(b.status)
 
   /* ─────────────────────────────────── RENDER ─── */
   return (
@@ -251,19 +293,15 @@ export default function BookingPage() {
 
             <div className="card">
               <h3>📋 Trip Details</h3>
-
-              {/* Service type */}
               <div className="service-type-row">
                 {[
-                  { id:'luggage',   icon:'🧳', label:'Luggage' },
-                  { id:'wheelchair',icon:'♿', label:'Wheelchair' },
-                  { id:'group',     icon:'👥', label:'Group / Corporate' },
+                  { id:'luggage',    icon:'🧳', label:'Luggage'           },
+                  { id:'wheelchair', icon:'♿', label:'Wheelchair'         },
+                  { id:'group',      icon:'👥', label:'Group / Corporate'  },
                 ].map(s => (
-                  <button
-                    key={s.id}
+                  <button key={s.id}
                     className={`service-btn ${form.serviceType === s.id ? 'active' : ''}`}
-                    onClick={() => setForm({...form, serviceType: s.id})}
-                  >
+                    onClick={() => setForm({...form, serviceType: s.id})}>
                     {s.icon} {s.label}
                   </button>
                 ))}
@@ -309,7 +347,6 @@ export default function BookingPage() {
                 </div>
               </div>
 
-              {/* ── PRICE RANGE ── */}
               <div className="price-range-box">
                 <div className="prb-header">
                   <span>💰 Your Price Range</span>
@@ -328,9 +365,7 @@ export default function BookingPage() {
                       value={form.priceMax} onChange={e => setForm({...form, priceMax: e.target.value})} />
                   </div>
                   {form.priceMin && form.priceMax && (
-                    <div className="prb-preview">
-                      ₹{form.priceMin}–₹{form.priceMax}
-                    </div>
+                    <div className="prb-preview">₹{form.priceMin}–₹{form.priceMax}</div>
                   )}
                 </div>
                 <p className="prb-note">
@@ -344,7 +379,6 @@ export default function BookingPage() {
               </button>
             </div>
 
-            {/* Available porters preview */}
             {loadingPorters
               ? <div className="card"><p style={{color:'var(--muted)'}}>Finding porters at your station…</p></div>
               : porters.length > 0 && (
@@ -392,16 +426,32 @@ export default function BookingPage() {
                 </div>
               : <div className="list">
                   {bookings.map(b => (
-                    <div className="b-item" key={b.id}>
+                    <div className="b-item" key={b.id} style={{ flexWrap: 'wrap', gap: 12 }}>
                       <div className="b-info">
                         <h4>{b.from_loc} → {b.to_loc}</h4>
-                        <p>{b.porter_name || 'Porter'} · {new Date(b.created_at).toLocaleDateString()}</p>
+                        <p>{b.porter_name || 'Awaiting porter'} · {new Date(b.created_at).toLocaleDateString()}</p>
                       </div>
-                      <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
                         <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:'var(--amber)' }}>
                           ₹{b.price_min}–₹{b.price_max}
                         </span>
                         <StatusBadge status={b.status} />
+                        {canCancel(b) && (
+                          <button
+                            onClick={() => handleCancel(b.id)}
+                            disabled={cancellingId === b.id}
+                            style={{
+                              padding: '5px 14px', borderRadius: 8,
+                              background: 'rgba(232,52,28,0.1)',
+                              border: '1px solid rgba(232,52,28,0.3)',
+                              color: 'var(--red)', fontSize: 12, fontWeight: 600,
+                              cursor: cancellingId === b.id ? 'not-allowed' : 'pointer',
+                              opacity: cancellingId === b.id ? 0.6 : 1,
+                            }}
+                          >
+                            {cancellingId === b.id ? 'Cancelling…' : '✕ Cancel'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -424,7 +474,6 @@ export default function BookingPage() {
                 <h2>Waiting for a Porter…</h2>
                 <p style={{ color:'var(--muted)' }}>
                   Your request has been sent to all available porters at <strong>{storedUser.station}</strong>.
-                  Sit tight!
                 </p>
                 <div className="detail-table" style={{maxWidth:380}}>
                   {[
@@ -437,9 +486,23 @@ export default function BookingPage() {
                     <div className="d-row" key={k}><span>{k}</span><strong>{v}</strong></div>
                   ))}
                 </div>
-                <div className="searching-dots">
-                  <span /><span /><span />
-                </div>
+                <div className="searching-dots"><span /><span /><span /></div>
+                {/* Cancel while waiting */}
+                {activeBookingId && (
+                  <button
+                    onClick={() => handleCancel(activeBookingId)}
+                    disabled={cancellingId === activeBookingId}
+                    style={{
+                      marginTop: 24, padding: '10px 28px', borderRadius: 10,
+                      background: 'rgba(232,52,28,0.1)',
+                      border: '1px solid rgba(232,52,28,0.3)',
+                      color: 'var(--red)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                      opacity: cancellingId === activeBookingId ? 0.6 : 1,
+                    }}
+                  >
+                    {cancellingId === activeBookingId ? 'Cancelling…' : '✕ Cancel Booking'}
+                  </button>
+                )}
               </div>
             )}
 
@@ -450,8 +513,6 @@ export default function BookingPage() {
                 <p style={{ color:'var(--muted)', marginBottom:20 }}>
                   Your porter is on the way. You can now contact them directly.
                 </p>
-
-                {/* ── MATCHED PORTER CARD ── */}
                 <div className="matched-porter-card">
                   <div className="mp-avatar" style={{background: AVATAR_COLORS[0]}}>
                     {getInitials(matchedPorter.name)}
@@ -460,15 +521,8 @@ export default function BookingPage() {
                     <h3>{matchedPorter.name}</h3>
                     <span>⭐ {matchedPorter.rating || '4.5'} · #{matchedPorter.coolie_num}</span>
                   </div>
-                  <a
-                    href={`tel:+91${matchedPorter.mobile}`}
-                    className="mp-call-btn"
-                  >
-                    📞 Call Porter
-                  </a>
+                  <a href={`tel:+91${matchedPorter.mobile}`} className="mp-call-btn">📞 Call Porter</a>
                 </div>
-
-                {/* Mobile number reveal */}
                 <div className="mobile-reveal-box">
                   <span>📱</span>
                   <div>
@@ -478,19 +532,28 @@ export default function BookingPage() {
                     </p>
                   </div>
                 </div>
-
                 <div className="sim-btns">
-                  <button className="btn-primary" onClick={() => navigate('/map')}>
-                    🗺️ Open Live Tracking Map
-                  </button>
-                  <button className="btn-outline" onClick={() => setTab('bookings')}>
-                    View All Bookings
-                  </button>
+                  <button className="btn-primary" onClick={() => navigate('/map')}>🗺️ Open Live Tracking Map</button>
+                  <button className="btn-outline" onClick={() => setTab('bookings')}>View All Bookings</button>
+                  {activeBookingId && (
+                    <button
+                      onClick={() => handleCancel(activeBookingId)}
+                      disabled={cancellingId === activeBookingId}
+                      style={{
+                        padding: '10px 20px', borderRadius: 10,
+                        background: 'rgba(232,52,28,0.1)',
+                        border: '1px solid rgba(232,52,28,0.3)',
+                        color: 'var(--red)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      ✕ Cancel Booking
+                    </button>
+                  )}
                 </div>
               </div>
             )}
 
-            {!requestSent && !liveStatus && bookings.filter(b=>b.status==='pending'||b.status==='confirmed').length === 0 && (
+            {!requestSent && !liveStatus && bookings.filter(b => b.status === 'pending' || b.status === 'confirmed').length === 0 && (
               <div className="empty-box">
                 <p style={{ fontSize:48 }}>🔔</p>
                 <p style={{ marginTop:12 }}>No active bookings.</p>
@@ -511,7 +574,6 @@ export default function BookingPage() {
                   &nbsp;— Requests from your station only
                 </p>
               </div>
-              {/* Availability toggle */}
               <div className="avail-bar" style={{margin:0, border:'none', background:'transparent', padding:0}}>
                 <div style={{marginRight:14}}>
                   <strong style={{fontSize:14, display:'block', color: available ? 'var(--green)' : 'var(--muted)'}}>
@@ -551,31 +613,45 @@ export default function BookingPage() {
                   </div>
                   <div className="req-details">
                     {[
-                      ['From',         r.from_loc],
-                      ['To',           r.to_loc],
-                      ['Bags',         r.bags],
-                      ['Service',      r.service_type || 'Luggage'],
-                      ['Train No.',    r.train_no || '—'],
-                      ['Coach',        r.coach || '—'],
+                      ['From',      r.from_loc],
+                      ['To',        r.to_loc],
+                      ['Bags',      r.bags],
+                      ['Service',   r.service_type || 'Luggage'],
+                      ['Train No.', r.train_no || '—'],
+                      ['Coach',     r.coach    || '—'],
                     ].map(([k,v]) => (
                       <div className="rd-row" key={k}><span>{k}</span><strong>{v}</strong></div>
                     ))}
                   </div>
-
-                  {/* Price range offered */}
                   <div className="price-offer-box">
                     <span>💰 Customer's Offer</span>
                     <strong style={{fontSize:22, fontFamily:"'Syne',sans-serif", color:'var(--amber)'}}>
                       ₹{r.price_min} – ₹{r.price_max}
                     </strong>
                   </div>
-
                   <div className="req-actions">
                     <button className="btn-accept" onClick={() => handleRequest(r.id, 'accept')}>
                       ✓ Accept — I'm okay with ₹{r.price_max}
                     </button>
                     <button className="btn-reject" onClick={() => handleRequest(r.id, 'reject')}>
                       ✕ Decline
+                    </button>
+                  </div>
+                  {/* Porter cancel for pending requests */}
+                  <div style={{ marginTop: 10 }}>
+                    <button
+                      onClick={() => handleCancel(r.id)}
+                      disabled={cancellingId === r.id}
+                      style={{
+                        width: '100%', padding: '9px', borderRadius: 8,
+                        background: 'transparent',
+                        border: '1px dashed rgba(232,52,28,0.3)',
+                        color: 'rgba(232,52,28,0.7)', fontSize: 12, fontWeight: 600,
+                        cursor: cancellingId === r.id ? 'not-allowed' : 'pointer',
+                        opacity: cancellingId === r.id ? 0.6 : 1,
+                      }}
+                    >
+                      {cancellingId === r.id ? 'Cancelling…' : '🚫 Cancel this Request'}
                     </button>
                   </div>
                 </div>
@@ -597,8 +673,6 @@ export default function BookingPage() {
                     <div className="status-card confirmed-card">
                       <div className="s-icon">🏃</div>
                       <h2>Job In Progress</h2>
-
-                      {/* Customer mobile reveal */}
                       <div className="mobile-reveal-box">
                         <span>📱</span>
                         <div>
@@ -607,27 +681,46 @@ export default function BookingPage() {
                             +91 {b.customer_mobile || '——'}
                           </p>
                         </div>
-                        <a href={`tel:+91${b.customer_mobile}`} className="mp-call-btn">
-                          📞 Call
-                        </a>
+                        <a href={`tel:+91${b.customer_mobile}`} className="mp-call-btn">📞 Call</a>
                       </div>
-
                       <div className="detail-table" style={{maxWidth:380}}>
                         {[
-                          ['Customer', b.customer_name],
-                          ['From',     b.from_loc],
-                          ['To',       b.to_loc],
-                          ['Bags',     b.bags],
-                          ['Coach',    b.coach || '—'],
+                          ['Customer',     b.customer_name],
+                          ['From',         b.from_loc],
+                          ['To',           b.to_loc],
+                          ['Bags',         b.bags],
+                          ['Coach',        b.coach || '—'],
                           ['Agreed Price', `₹${b.price_max}`],
                         ].map(([k,v]) => v && (
                           <div className="d-row" key={k}><span>{k}</span><strong>{v}</strong></div>
                         ))}
                       </div>
-
                       <div className="sim-btns">
-                        <button className="btn-amber" onClick={() => navigate('/map')}>
-                          🗺️ Open Live Tracking Map
+                        <button className="btn-amber" onClick={() => navigate('/map')}>🗺️ Open Live Tracking Map</button>
+                        <button
+                          onClick={() => updateStatus(b.id, 'completed')}
+                          style={{
+                            padding: '10px 20px', borderRadius: 10,
+                            background: 'rgba(34,197,94,0.12)',
+                            border: '1px solid rgba(34,197,94,0.25)',
+                            color: 'var(--green)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                          }}
+                        >
+                          🏁 Mark Complete
+                        </button>
+                        {/* Porter cancel active job */}
+                        <button
+                          onClick={() => handleCancel(b.id)}
+                          disabled={cancellingId === b.id}
+                          style={{
+                            padding: '10px 20px', borderRadius: 10,
+                            background: 'rgba(232,52,28,0.1)',
+                            border: '1px solid rgba(232,52,28,0.3)',
+                            color: 'var(--red)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                            opacity: cancellingId === b.id ? 0.6 : 1,
+                          }}
+                        >
+                          {cancellingId === b.id ? 'Cancelling…' : '🚫 Cancel Job'}
                         </button>
                       </div>
                     </div>
@@ -673,9 +766,9 @@ export default function BookingPage() {
             </div>
             <div className="stats-row">
               {[
-                ['Total Earned', `₹${bookings.filter(b=>b.status==='completed').reduce((s,b)=>s+(b.price_max||0),0)}`, 'var(--green)'],
+                ['Total Earned',    `₹${bookings.filter(b=>b.status==='completed').reduce((s,b)=>s+(Number(b.price_max)||0),0)}`, 'var(--green)'],
                 ['Completed Trips', bookings.filter(b=>b.status==='completed').length, 'var(--amber)'],
-                ['Pending', bookings.filter(b=>b.status==='pending').length, 'var(--text)'],
+                ['Pending',         bookings.filter(b=>b.status==='pending').length,   'var(--text)'],
               ].map(([l,v,c]) => (
                 <div className="stat-card" key={l}>
                   <div className="stat-label">{l}</div>

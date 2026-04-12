@@ -18,7 +18,8 @@ const RESPONSES = {
     action: { label: 'Book Now →', route: '/booking' },
   },
   pricing: {
-    text: `Prices are set by porters per route 💸\n\nTypical rates at NDLS:\n• Platform → Exit Gate: ₹80–₹120\n• Platform → Parking: ₹150–₹200\n• Platform → Platform: ₹60–₹100\n\nNo hidden charges. What you see is what you pay!`,
+    text: `You are in control of your budget! 💸\n\nSimply set your price limit from your destination to your location while booking.\n\nPorters who match your budget will appear — pick the one you like and confirm!\n\nNo hidden charges. What you set is what you pay.`,
+    action: { label: 'Set Price & Book →', route: '/booking' },
   },
   who_porter: {
     text: `PorterSaathi porters are 🏛️ government-registered coolies with official coolie numbers.\n\nEvery porter is:\n✅ Govt. verified\n✅ Rated by real customers\n✅ Insured for your luggage\n✅ Trained & background checked`,
@@ -31,10 +32,11 @@ const RESPONSES = {
     action: { label: 'My Bookings →', route: '/booking' },
   },
   payment: {
-    text: `We support multiple payment methods 💳\n\n• UPI (GPay, PhonePe, Paytm)\n• Debit / Credit Card\n• Net Banking\n• Cash on delivery\n\nAll digital payments are 100% secure and logged.`,
+    text: `We support multiple payment methods 💳\n\nPowered by **Razorpay** — India's most trusted payment gateway:\n\n• UPI (GPay, PhonePe, Paytm)\n• Debit / Credit Card\n• Net Banking\n• Cash on Delivery\n\nAll payments are 100% secure and encrypted. You pay only after your porter is confirmed!`,
+    action: { label: 'Book & Pay →', route: '/booking' },
   },
   help: {
-    text: `Need more help? 🆘\n\nYou can:\n• Email us: support@portersaathi.in\n• Call: 1800-XXX-XXXX (9AM–9PM)\n• WhatsApp: +91 98765 00000\n\nWe usually respond within 30 minutes!`,
+    text: `Need more help? 🆘\n\nYou can:\n• Email us: support@portersaathi.in\n• Call: +91 93986 41293 (9AM–9PM)\n• WhatsApp: +91 93986 41293\n\nWe usually respond within 30 minutes!`,
   },
 }
 

@@ -88,7 +88,7 @@ exports.getMyBookings = async (req, res) => {
                 cu.mobile AS customer_mobile
          FROM bookings b
          JOIN users cu ON cu.id = b.customer_id
-        WHERE (b.porter_id = $1 OR (b.status = 'pending' AND cu.station = $2))
+        WHERE (b.porter_id = $1 OR (b.status = 'pending' AND b.station = $2))
          ORDER BY b.created_at DESC`,
         [userId, porterStation]
       )

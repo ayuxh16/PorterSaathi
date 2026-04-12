@@ -26,9 +26,9 @@ export default function LoginPage() {
         if (data.user.role === 'admin') {
           navigate('/admin')
         } else if (data.user.role === 'porter') {
-          navigate('/portal')
+          navigate('/portal')       // ← porter goes to their dashboard
         } else {
-          navigate('/booking')
+          navigate('/booking')      // ← customer goes to booking page
         }
       } else {
         alert(data.error || 'Login failed')
