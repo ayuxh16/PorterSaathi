@@ -4,7 +4,7 @@ const express        = require('express')
 const cors           = require('cors')
 const app            = express()
 const authRoutes     = require('./routes/authRoutes')
-const paymentRoutes  = require('./routes/paymentRoutes')
+const paymentRoutes = require('./routes/Paymentroutes')
 const authMiddleware = require('./middleware/authMiddleware')
 const pool           = require('./config/db')
 
