@@ -413,156 +413,105 @@ export default function BookingPage() {
           </>
         )}
 
-        {/* ══ CUSTOMER: MY BOOKINGS ══ */}
-        {!isPorter && tab === 'bookings' && (
-          <>
-            <div className="page-header">
-              <div><h1>My Bookings</h1><p>All your past and current trips</p></div>
+  {!isPorter && tab === 'status' && (
+  <>
+    <div className="page-header">
+      <div><h1>Booking Status</h1><p>Live updates on your current booking</p></div>
+    </div>
+
+    {bookings.filter(b => ['pending','confirmed'].includes(b.status)).length === 0 ? (
+      <div className="empty-box">
+        <p style={{ fontSize:48 }}>🔔</p>
+        <p style={{ marginTop:12 }}>No active bookings.</p>
+        <button className="link-btn" onClick={() => setTab('book')}>Book a porter →</button>
+      </div>
+    ) : (
+      bookings.filter(b => ['pending','confirmed'].includes(b.status)).map(b => (
+        <div key={b.id}>
+          {b.status === 'pending' && (
+            <div className="status-card waiting-card">
+              <div className="pulse-ring" />
+              <div className="s-icon">📡</div>
+              <h2>Waiting for a Porter…</h2>
+              <p style={{ color:'var(--muted)' }}>
+                Your request has been sent to porters at <strong>{b.station}</strong>.
+              </p>
+              <div className="detail-table" style={{maxWidth:380}}>
+                {[
+                  ['From', b.from_loc],
+                  ['To', b.to_loc],
+                  ['Price Range', `₹${b.price_min} – ₹${b.price_max}`],
+                  ['Bags', b.bags],
+                  ['Station', b.station],
+                ].map(([k,v]) => v && (
+                  <div className="d-row" key={k}><span>{k}</span><strong>{v}</strong></div>
+                ))}
+              </div>
+              <div className="searching-dots"><span /><span /><span /></div>
+              <button
+                onClick={() => handleCancel(b.id)}
+                disabled={cancellingId === b.id}
+                style={{
+                  marginTop: 24, padding: '10px 28px', borderRadius: 10,
+                  background: 'rgba(232,52,28,0.1)',
+                  border: '1px solid rgba(232,52,28,0.3)',
+                  color: 'var(--red)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                {cancellingId === b.id ? 'Cancelling…' : '✕ Cancel Booking'}
+              </button>
             </div>
-            {bookings.length === 0
-              ? <div className="empty-box">
-                  <p>No bookings yet.</p>
-                  <button className="link-btn" onClick={() => setTab('book')}>Book your first porter →</button>
-                </div>
-              : <div className="list">
-                  {bookings.map(b => (
-                    <div className="b-item" key={b.id} style={{ flexWrap: 'wrap', gap: 12 }}>
-                      <div className="b-info">
-                        <h4>{b.from_loc} → {b.to_loc}</h4>
-                        <p>{b.porter_name || 'Awaiting porter'} · {new Date(b.created_at).toLocaleDateString()}</p>
-                      </div>
-                      <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-                        <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, color:'var(--amber)' }}>
-                          ₹{b.price_min}–₹{b.price_max}
-                        </span>
-                        <StatusBadge status={b.status} />
-                        {canCancel(b) && (
-                          <button
-                            onClick={() => handleCancel(b.id)}
-                            disabled={cancellingId === b.id}
-                            style={{
-                              padding: '5px 14px', borderRadius: 8,
-                              background: 'rgba(232,52,28,0.1)',
-                              border: '1px solid rgba(232,52,28,0.3)',
-                              color: 'var(--red)', fontSize: 12, fontWeight: 600,
-                              cursor: cancellingId === b.id ? 'not-allowed' : 'pointer',
-                              opacity: cancellingId === b.id ? 0.6 : 1,
-                            }}
-                          >
-                            {cancellingId === b.id ? 'Cancelling…' : '✕ Cancel'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-            }
-          </>
-        )}
+          )}
 
-        {/* ══ CUSTOMER: STATUS ══ */}
-        {!isPorter && tab === 'status' && (
-          <>
-            <div className="page-header">
-              <div><h1>Booking Status</h1><p>Live updates on your current booking</p></div>
+          {b.status === 'confirmed' && (
+            <div className="status-card confirmed-card">
+              <div className="s-icon">✅</div>
+              <h2>Porter Confirmed!</h2>
+              <p style={{ color:'var(--muted)', marginBottom:20 }}>
+                Your porter is on the way!
+              </p>
+              <div className="matched-porter-card">
+                <div className="mp-avatar" style={{background:'linear-gradient(135deg,#E8341C,#F5A623)'}}>
+                  {(b.porter_name || 'P').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
+                </div>
+                <div className="mp-info">
+                  <h3>{b.porter_name || 'Porter'}</h3>
+                  <span>#{b.porter_coolie_num || '—'}</span>
+                </div>
+                <a href={`tel:+91${b.porter_mobile}`} className="mp-call-btn">📞 Call Porter</a>
+              </div>
+              <div className="mobile-reveal-box">
+                <span>📱</span>
+                <div>
+                  <strong>Porter's Mobile</strong>
+                  <p style={{fontSize:20, fontFamily:"'Syne',sans-serif", fontWeight:700, color:'var(--text)', margin:'4px 0 0'}}>
+                    +91 {b.porter_mobile}
+                  </p>
+                </div>
+              </div>
+              <div className="sim-btns">
+                <button className="btn-primary" onClick={() => navigate('/map')}>🗺️ Open Live Tracking Map</button>
+                <button className="btn-outline" onClick={() => setTab('bookings')}>View All Bookings</button>
+                <button
+                  onClick={() => handleCancel(b.id)}
+                  disabled={cancellingId === b.id}
+                  style={{
+                    padding: '10px 20px', borderRadius: 10,
+                    background: 'rgba(232,52,28,0.1)',
+                    border: '1px solid rgba(232,52,28,0.3)',
+                    color: 'var(--red)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  ✕ Cancel Booking
+                </button>
+              </div>
             </div>
-
-            {requestSent && bookingStatus === 'pending' && (
-              <div className="status-card waiting-card">
-                <div className="pulse-ring" />
-                <div className="s-icon">📡</div>
-                <h2>Waiting for a Porter…</h2>
-                <p style={{ color:'var(--muted)' }}>
-                  Your request has been sent to all available porters at <strong>{storedUser.station}</strong>.
-                </p>
-                <div className="detail-table" style={{maxWidth:380}}>
-                  {[
-                    ['From',        form.from || liveStatus?.from_loc],
-                    ['To',          form.to   || liveStatus?.to_loc],
-                    ['Price Range', `₹${form.priceMin} – ₹${form.priceMax}`],
-                    ['Bags',        form.bags],
-                    ['Station',     storedUser.station],
-                  ].map(([k,v]) => v && (
-                    <div className="d-row" key={k}><span>{k}</span><strong>{v}</strong></div>
-                  ))}
-                </div>
-                <div className="searching-dots"><span /><span /><span /></div>
-                {/* Cancel while waiting */}
-                {activeBookingId && (
-                  <button
-                    onClick={() => handleCancel(activeBookingId)}
-                    disabled={cancellingId === activeBookingId}
-                    style={{
-                      marginTop: 24, padding: '10px 28px', borderRadius: 10,
-                      background: 'rgba(232,52,28,0.1)',
-                      border: '1px solid rgba(232,52,28,0.3)',
-                      color: 'var(--red)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                      opacity: cancellingId === activeBookingId ? 0.6 : 1,
-                    }}
-                  >
-                    {cancellingId === activeBookingId ? 'Cancelling…' : '✕ Cancel Booking'}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {bookingStatus === 'confirmed' && matchedPorter && (
-              <div className="status-card confirmed-card">
-                <div className="s-icon">✅</div>
-                <h2>Porter Confirmed!</h2>
-                <p style={{ color:'var(--muted)', marginBottom:20 }}>
-                  Your porter is on the way. You can now contact them directly.
-                </p>
-                <div className="matched-porter-card">
-                  <div className="mp-avatar" style={{background: AVATAR_COLORS[0]}}>
-                    {getInitials(matchedPorter.name)}
-                  </div>
-                  <div className="mp-info">
-                    <h3>{matchedPorter.name}</h3>
-                    <span>⭐ {matchedPorter.rating || '4.5'} · #{matchedPorter.coolie_num}</span>
-                  </div>
-                  <a href={`tel:+91${matchedPorter.mobile}`} className="mp-call-btn">📞 Call Porter</a>
-                </div>
-                <div className="mobile-reveal-box">
-                  <span>📱</span>
-                  <div>
-                    <strong>Porter's Mobile</strong>
-                    <p style={{fontSize:20, fontFamily:"'Syne',sans-serif", fontWeight:700, color:'var(--text)', margin:'4px 0 0'}}>
-                      +91 {matchedPorter.mobile}
-                    </p>
-                  </div>
-                </div>
-                <div className="sim-btns">
-                  <button className="btn-primary" onClick={() => navigate('/map')}>🗺️ Open Live Tracking Map</button>
-                  <button className="btn-outline" onClick={() => setTab('bookings')}>View All Bookings</button>
-                  {activeBookingId && (
-                    <button
-                      onClick={() => handleCancel(activeBookingId)}
-                      disabled={cancellingId === activeBookingId}
-                      style={{
-                        padding: '10px 20px', borderRadius: 10,
-                        background: 'rgba(232,52,28,0.1)',
-                        border: '1px solid rgba(232,52,28,0.3)',
-                        color: 'var(--red)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                      }}
-                    >
-                      ✕ Cancel Booking
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {!requestSent && !liveStatus && bookings.filter(b => b.status === 'pending' || b.status === 'confirmed').length === 0 && (
-              <div className="empty-box">
-                <p style={{ fontSize:48 }}>🔔</p>
-                <p style={{ marginTop:12 }}>No active bookings.</p>
-                <button className="link-btn" onClick={() => setTab('book')}>Book a porter →</button>
-              </div>
-            )}
-          </>
-        )}
-
+          )}
+        </div>
+      ))
+    )}
+  </>
+)}
         {/* ══ PORTER: REQUESTS ══ */}
         {isPorter && tab === 'requests' && (
           <>
