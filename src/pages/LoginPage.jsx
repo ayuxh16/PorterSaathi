@@ -11,7 +11,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      const res  = await fetch('https://portersaathi-1.onrender.com/api/auth/login', {
+      const res  = await fetch('${import.meta.env.VITE_API_URL}/api/auth/login', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(form),
@@ -102,6 +102,8 @@ export default function LoginPage() {
     </div>
   )
 }
+
+
 
 
 

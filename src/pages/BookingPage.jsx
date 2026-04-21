@@ -34,7 +34,7 @@ const AVATAR_COLORS = [
   'linear-gradient(135deg,#6366f1,#8b5cf6)',
 ]
 
-const API = 'https://portersaathi-1.onrender.com'
+const API = '${import.meta.env.VITE_API_URL}'
 
 export default function BookingPage() {
   const navigate       = useNavigate()
@@ -638,3 +638,4 @@ export default function BookingPage() {
     </div>
   )
 }
+

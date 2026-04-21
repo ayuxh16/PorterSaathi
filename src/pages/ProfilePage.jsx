@@ -31,7 +31,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!token) { navigate('/login'); return }
-    fetch('https://portersaathi-1.onrender.com/api/auth/me', {
+    fetch('${import.meta.env.VITE_API_URL}/api/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : null)
@@ -180,6 +180,8 @@ export default function ProfilePage() {
     </div>
   )
 }
+
+
 
 
 

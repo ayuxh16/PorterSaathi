@@ -68,7 +68,7 @@ export default function MapPage() {
   // Fetch active booking
   useEffect(() => {
     if (!token) { navigate('/login'); return }
-    fetch('https://portersaathi-1.onrender.com/api/bookings/active', {
+    fetch('${import.meta.env.VITE_API_URL}/api/bookings/active', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => {
@@ -278,6 +278,8 @@ export default function MapPage() {
     </div>
   )
 }
+
+
 
 
 
