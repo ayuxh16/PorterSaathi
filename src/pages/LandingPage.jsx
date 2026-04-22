@@ -39,7 +39,7 @@ export default function LandingPage() {
   const [porters, setPorters] = useState(FALLBACK_PORTERS)
 
   useEffect(() => {
-    fetch('${import.meta.env.VITE_API_URL}/api/porters')
+    fetch(`https://portersaathi-1.onrender.com/api/porters')
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data && data.length) setPorters(data) })
       .catch(() => {}) // silently use fallback
@@ -137,6 +137,11 @@ export default function LandingPage() {
     </div>
   )
 }
+
+
+
+
+
 
 
 

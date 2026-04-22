@@ -17,7 +17,7 @@ const INDIAN_STATIONS = [
 export default function SignupPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState(1) // 2-step form
+  const [step, setStep] = useState(1)
   const [stationSearch, setStationSearch] = useState('')
   const [showStationDropdown, setShowStationDropdown] = useState(false)
 
@@ -78,7 +78,7 @@ export default function SignupPage() {
         ...(form.role === 'porter' && { coolieNum: form.coolieNum }),
       }
 
-      const res  = await fetch('${import.meta.env.VITE_API_URL}/api/auth/signup', {
+      const res = await fetch(`https://portersaathi-1.onrender.com/api/auth/signup`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
@@ -115,7 +115,6 @@ export default function SignupPage() {
           <h2>Join PorterSaathi today</h2>
           <p>Be part of India's largest railway porter network.</p>
 
-          {/* Step indicator on left panel */}
           <div className="signup-steps-visual">
             <div className={`ssv-step ${step >= 1 ? 'done' : ''}`}>
               <div className="ssv-circle" style={{ borderColor: accent, background: step >= 1 ? accent : 'transparent' }}>
@@ -150,7 +149,6 @@ export default function SignupPage() {
       <div className="login-right">
         <div className="login-card">
 
-          {/* Step progress bar */}
           <div className="step-bar">
             <div className="step-bar-fill" style={{ width: step === 1 ? '50%' : '100%', background: accent }} />
           </div>
@@ -158,7 +156,6 @@ export default function SignupPage() {
             Step {step} of 2
           </p>
 
-          {/* Role toggle — always visible */}
           <div className="form-group">
             <label>I am a</label>
             <div className="role-toggle">
@@ -237,7 +234,6 @@ export default function SignupPage() {
 
               <form onSubmit={handleSignup}>
 
-                {/* Station selector */}
                 <div className="form-group" style={{ position: 'relative' }}>
                   <label>🚉 Your Railway Station <span style={{ color: 'var(--red)' }}>*</span></label>
                   <input
@@ -281,7 +277,6 @@ export default function SignupPage() {
                     value={form.city} onChange={handleChange} />
                 </div>
 
-                {/* Porter-only fields */}
                 {isPorter && (
                   <>
                     <div className="govt-notice">
@@ -304,7 +299,6 @@ export default function SignupPage() {
                   </>
                 )}
 
-                {/* Mobile number confirmation notice */}
                 <div className="info-notice">
                   <span>📱</span>
                   <div>
@@ -345,11 +339,3 @@ export default function SignupPage() {
     </div>
   )
 }
-
-
-
-
-
-
-
-

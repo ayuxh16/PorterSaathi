@@ -1,8 +1,10 @@
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+
+const API = 'https://portersaathi-1.onrender.com'
 
 const userIcon = new L.DivIcon({
   className: '',
@@ -42,7 +44,6 @@ function RecenterButton({ positions }) {
 export default function MapPage() {
   const navigate  = useNavigate()
   const watchRef  = useRef(null)
-  const pollRef   = useRef(null)
 
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
   const token      = localStorage.getItem('token')
@@ -51,24 +52,12 @@ export default function MapPage() {
   const [myLocation,    setMyLocation]    = useState(null)
   const [bookingInfo,   setBookingInfo]   = useState(null)
   const [locationError, setLocationError] = useState(null)
-  const [distance,      setDistance]      = useState(null)
   const [error,         setError]         = useState(null)
-
-  // Haversine distance in metres
-  const calcDistance = (a, b) => {
-    const R  = 6371000
-    const φ1 = a[0] * Math.PI / 180
-    const φ2 = b[0] * Math.PI / 180
-    const Δφ = (b[0] - a[0]) * Math.PI / 180
-    const Δλ = (b[1] - a[1]) * Math.PI / 180
-    const x  = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2
-    return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x)))
-  }
 
   // Fetch active booking
   useEffect(() => {
     if (!token) { navigate('/login'); return }
-    fetch('${import.meta.env.VITE_API_URL}/api/bookings/active', {
+    fetch(`${API}/api/bookings/active`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => {
@@ -95,9 +84,6 @@ export default function MapPage() {
     return () => { if (watchRef.current) navigator.geolocation.clearWatch(watchRef.current) }
   }, [])
 
-  // Calculate distance when my location updates
-  // (In a real app, other party's location would come from Socket.io)
-  // For now, show your own location clearly with booking info
   const center = myLocation || [26.1445, 91.7362]
 
   return (
@@ -157,7 +143,6 @@ export default function MapPage() {
           background:'#1a1a1a', borderBottom:'1px solid rgba(255,255,255,0.07)',
           flexWrap:'wrap',
         }}>
-          {/* My location */}
           <div style={{
             background:'#222', border:'1px solid rgba(255,255,255,0.07)',
             borderRadius:10, padding:'10px 16px', flex:1, minWidth:160,
@@ -172,7 +157,6 @@ export default function MapPage() {
             </strong>
           </div>
 
-          {/* Booking info */}
           {bookingInfo && (
             <div style={{
               background:'#222', border:'1px solid rgba(255,255,255,0.07)',
@@ -190,7 +174,6 @@ export default function MapPage() {
             </div>
           )}
 
-          {/* Call button */}
           {bookingInfo && (
             <a
               href={`tel:+91${isPorter ? bookingInfo.customer_mobile : bookingInfo.porter_mobile}`}
@@ -247,7 +230,6 @@ export default function MapPage() {
             )}
           </MapContainer>
 
-          {/* LEGEND */}
           <div style={{
             position:'absolute', top:12, left:12, zIndex:1000,
             background:'rgba(13,13,13,0.85)', backdropFilter:'blur(8px)',
@@ -264,7 +246,6 @@ export default function MapPage() {
             )}
           </div>
 
-          {/* Note about real-time */}
           <div style={{
             position:'absolute', bottom:12, left:'50%', transform:'translateX(-50%)',
             zIndex:1000, background:'rgba(13,13,13,0.85)', backdropFilter:'blur(8px)',
@@ -278,11 +259,3 @@ export default function MapPage() {
     </div>
   )
 }
-
-
-
-
-
-
-
-
