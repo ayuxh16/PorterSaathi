@@ -15,12 +15,12 @@ export default function RazorpayButton({ bookingId, amount, onSuccess, onFailure
     try {
       const res = await fetch(`${API}/api/payment/create-order`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, bookingId }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ amount, booking_id: bookingId }),
       })
       const order = await res.json()
 
-      if (!order.id) {
+      if (!order.order_id) {
         onFailure && onFailure('Failed to create payment order')
         return
       }
@@ -31,17 +31,17 @@ export default function RazorpayButton({ bookingId, amount, onSuccess, onFailure
         currency: order.currency,
         name: 'PorterSaathi',
         description: `Booking #${bookingId}`,
-        order_id: order.id,
+        order_id: order.order_id,
         handler: async (response) => {
           try {
             const verifyRes = await fetch(`${API}/api/payment/verify`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
               body: JSON.stringify({
                 razorpay_order_id:   response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature:  response.razorpay_signature,
-                bookingId,
+                booking_id: bookingId,
               }),
             })
             const result = await verifyRes.json()

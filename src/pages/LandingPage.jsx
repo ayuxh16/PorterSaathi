@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
 import './LandingPage.css'
 
+const API = 'https://portersaathi-1.onrender.com'
+
 const FEATURES = [
   { icon:'🏛️', title:'Govt. Verified',    desc:'Every porter has an official government-issued registration number.' },
   { icon:'💸', title:'Fixed Route Price', desc:'No haggling. Clear prices set by porters per route.' },
@@ -39,7 +41,7 @@ export default function LandingPage() {
   const [porters, setPorters] = useState(FALLBACK_PORTERS)
 
   useEffect(() => {
-    fetch(`https://portersaathi-1.onrender.com/api/porters`)
+    fetch(`${API}/api/porters`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data && data.length) setPorters(data) })
       .catch(() => {}) // silently use fallback
@@ -137,16 +139,3 @@ export default function LandingPage() {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

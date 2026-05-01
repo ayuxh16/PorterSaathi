@@ -4,6 +4,8 @@ import Sidebar from '../components/Sidebar'
 import { useToast } from '../components/Toast'
 import './ProfilePage.css'
 
+const API = 'https://portersaathi-1.onrender.com'
+
 export default function ProfilePage() {
   const navigate  = useNavigate()
   const showToast = useToast()
@@ -31,7 +33,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!token) { navigate('/login'); return }
-    fetch(`https://portersaathi-1.onrender.com/api/auth/me`, {
+    fetch(`${API}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : null)
@@ -180,16 +182,3 @@ export default function ProfilePage() {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

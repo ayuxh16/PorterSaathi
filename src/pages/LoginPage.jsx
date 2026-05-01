@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './LoginPage.css'
 
+const API = 'https://portersaathi-1.onrender.com'
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -11,7 +13,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      const res  = await fetch(`https://portersaathi-1.onrender.com/api/auth/login`, {
+      const res  = await fetch(`${API}/api/auth/login`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(form),
@@ -102,17 +104,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

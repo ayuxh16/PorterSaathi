@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import './LoginPage.css'
 import './SignupPage.css'
 
+const API = 'https://portersaathi-1.onrender.com'
+
 const INDIAN_STATIONS = [
   'New Delhi (NDLS)', 'Mumbai CST (CSTM)', 'Howrah (HWH)', 'Chennai Central (MAS)',
   'Bengaluru City (SBC)', 'Hyderabad (HYB)', 'Ahmedabad (ADI)', 'Pune (PUNE)',
@@ -78,7 +80,7 @@ export default function SignupPage() {
         ...(form.role === 'porter' && { coolieNum: form.coolieNum }),
       }
 
-      const res = await fetch(`https://portersaathi-1.onrender.com/api/auth/signup`, {
+      const res = await fetch(`${API}/api/auth/signup`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
